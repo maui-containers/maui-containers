@@ -59,7 +59,7 @@ jobs:
       run: |
         echo "Installing Homebrew packages..."
         brew install cirruslabs/cli/tart
-        brew install packer
+        brew install hashicorp/tap/packer
         brew install jq
 
         echo "Verifying installations..."
