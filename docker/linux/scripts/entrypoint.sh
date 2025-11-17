@@ -4,8 +4,8 @@
 
 set -e
 
-echo "MAUI Base Image - Linux Container"
-echo "=================================="
+echo "MAUI Image - Linux Container"
+echo "============================"
 
 # Run custom init script if provided
 if [ -f "$INIT_BASH_SCRIPT" ]; then

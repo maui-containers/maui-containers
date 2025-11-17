@@ -315,43 +315,43 @@ jobs:
         # Construct image name
         $imageName = "${{ env.DOCKER_REPOSITORY_BASE }}:dotnet${{ matrix.dotnet_version }}-pr-test"
 
-        Write-Host "Testing that base image includes runner functionality: $imageName"
-        
+        Write-Host "Testing runner functionality: $imageName"
+
         if ("${{ matrix.platform }}" -eq "linux") {
-          # Test that GitHub Actions runner files are present in base image
+          # Test that GitHub Actions runner files are present
           $githubRunnerScript = docker run --rm $imageName bash -c 'ls /home/mauiusr/actions-runner/run.sh 2>/dev/null && echo "found" || echo "not found"'
           if ($githubRunnerScript -eq "found") {
-            Write-Host "✅ GitHub Actions runner found in base image"
+            Write-Host "✅ GitHub Actions runner found"
           } else {
-            Write-Error "❌ GitHub Actions runner script not found in base image"
+            Write-Error "❌ GitHub Actions runner script not found"
             exit 1
           }
-          
-          # Test that Gitea runner files are present in base image
+
+          # Test that Gitea runner files are present
           $giteaRunnerBinary = docker run --rm $imageName bash -c 'ls /home/mauiusr/gitea-runner/act_runner 2>/dev/null && echo "found" || echo "not found"'
           if ($giteaRunnerBinary -eq "found") {
-            Write-Host "✅ Gitea Actions runner found in base image"
+            Write-Host "✅ Gitea Actions runner found"
           } else {
-            Write-Error "❌ Gitea Actions runner binary not found in base image"
+            Write-Error "❌ Gitea Actions runner binary not found"
             exit 1
           }
         }
         elseif ("${{ matrix.platform }}" -eq "windows") {
-          # Test that GitHub Actions runner files are present in base image (Windows)
-          $githubRunnerScript = docker run --rm $imageName powershell -c 'if (Test-Path "C:\actions-runner\run.cmd") { "found" } else { "not found" }'
-          if ($githubRunnerScript -eq "found") {
-            Write-Host "✅ GitHub Actions runner found in base image"
+          # Test that GitHub Actions runner files are present (Windows)
+          $githubRunnerScript = docker run --rm $imageName powershell -c "if (Test-Path 'C:\actions-runner\run.cmd') { Write-Output 'found' } else { Write-Output 'not found' }"
+          if ($githubRunnerScript -match "found") {
+            Write-Host "✅ GitHub Actions runner found"
           } else {
-            Write-Error "❌ GitHub Actions runner script not found in base image"
+            Write-Error "❌ GitHub Actions runner script not found"
             exit 1
           }
-          
-          # Test that Gitea runner files are present in base image (Windows)
-          $giteaRunnerBinary = docker run --rm $imageName powershell -c 'if (Test-Path "C:\gitea-runner\act_runner.exe") { "found" } else { "not found" }'
-          if ($giteaRunnerBinary -eq "found") {
-            Write-Host "✅ Gitea Actions runner found in base image"
+
+          # Test that Gitea runner files are present (Windows)
+          $giteaRunnerBinary = docker run --rm $imageName powershell -c "if (Test-Path 'C:\gitea-runner\act_runner.exe') { Write-Output 'found' } else { Write-Output 'not found' }"
+          if ($giteaRunnerBinary -match "found") {
+            Write-Host "✅ Gitea Actions runner found"
           } else {
-            Write-Error "❌ Gitea Actions runner binary not found in base image"
+            Write-Error "❌ Gitea Actions runner binary not found"
             exit 1
           }
         }

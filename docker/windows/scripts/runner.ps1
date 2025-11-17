@@ -5,7 +5,7 @@ function Write-Log {
     Write-Host "[runner] $Message"
 }
 
-Write-Log "MAUI Base Image - Runner initialization"
+Write-Log "MAUI Image - Runner initialization"
 
 # Check for and execute initialization script if it exists
 $initPwshPath = $env:INIT_PWSH_SCRIPT

@@ -3,8 +3,8 @@
 
 $ErrorActionPreference = 'Stop'
 
-Write-Host "MAUI Base Image - Windows Container"
-Write-Host "===================================="
+Write-Host "MAUI Image - Windows Container"
+Write-Host "==============================="
 
 # Run custom init script if provided
 if (Test-Path $env:INIT_PWSH_SCRIPT) {

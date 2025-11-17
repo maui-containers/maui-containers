@@ -60,8 +60,8 @@ if (-not $androidDetails) {
 # Extract the dotnet command version for Docker tags
 $dotnetCommandWorkloadSetVersion = $workloadInfo.DotnetCommandWorkloadSetVersion
 
-Write-Host "Building MAUI Base Image for $DockerPlatform"
-Write-Host "=============================================="
+Write-Host "Building MAUI Image for $DockerPlatform"
+Write-Host "========================================"
 Write-Host ".NET Version: $DotnetVersion"
 Write-Host "Workload Set Version: $($workloadInfo.WorkloadSetVersion)"
 Write-Host "Dotnet Command Workload Set Version: $dotnetCommandWorkloadSetVersion"
