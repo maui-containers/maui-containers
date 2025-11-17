@@ -124,6 +124,7 @@ Write-Host "Workload default API Level: $($androidDetails.ApiLevel) (will be ava
 # - android{XX}-dotnet{X.Y} - Latest workload for this .NET version
 # - android{XX}-dotnet{X.Y}-workloads{X.Y.Z} - Specific workload version
 # - android{XX}-dotnet{X.Y}-workloads{X.Y.Z}-v{sha} - SHA-pinned version (optional)
+# If Version is not "latest", also add a custom version tag
 $tags = @()
 
 # 1. android{XX}-dotnet{X.Y} tag (this is the "latest" for this .NET version + API level)
@@ -138,6 +139,12 @@ $tags += $workloadTag
 if ($BuildSha) {
     $shaTag = "${DockerRepository}:android${AndroidSdkApiLevel}-dotnet${DotnetVersion}-workloads${dotnetCommandWorkloadSetVersion}-v${BuildSha}"
     $tags += $shaTag
+}
+
+# 4. Optional: Custom version tag (for PR builds, etc.)
+if ($Version -ne "latest") {
+    $customTag = "${DockerRepository}:android${AndroidSdkApiLevel}-dotnet${DotnetVersion}-${Version}"
+    $tags += $customTag
 }
 
 Write-Host "Docker tags that will be created:"

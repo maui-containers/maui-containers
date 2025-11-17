@@ -220,7 +220,7 @@ jobs:
     - name: 🔍 Validate Docker image
       shell: pwsh
       run: |
-        $imageName = "${{ env.DOCKER_REPOSITORY_BASE }}:${{ matrix.platform }}-dotnet${{ matrix.dotnet_version }}-pr-test"
+        $imageName = "${{ env.DOCKER_REPOSITORY_BASE }}:dotnet${{ matrix.dotnet_version }}-pr-test"
         Write-Host "Validating image: $imageName"
         $imageExists = docker images --format "{{.Repository}}:{{.Tag}}" | Select-String -Pattern "$imageName"
         if ($imageExists) {
@@ -234,11 +234,11 @@ jobs:
         }
 
     - name: 🧪 Basic image test
-      shell: pwsh  
+      shell: pwsh
       run: |
         # Construct image name
-        $imageName = "${{ env.DOCKER_REPOSITORY_BASE }}:${{ matrix.platform }}-dotnet${{ matrix.dotnet_version }}-pr-test"
-        
+        $imageName = "${{ env.DOCKER_REPOSITORY_BASE }}:dotnet${{ matrix.dotnet_version }}-pr-test"
+
         Write-Host "Testing basic functionality of: $imageName"
         
         if ("${{ matrix.platform }}" -eq "linux") {
@@ -313,8 +313,8 @@ jobs:
       shell: pwsh
       run: |
         # Construct image name
-        $imageName = "${{ env.DOCKER_REPOSITORY_BASE }}:${{ matrix.platform }}-dotnet${{ matrix.dotnet_version }}-pr-test"
-        
+        $imageName = "${{ env.DOCKER_REPOSITORY_BASE }}:dotnet${{ matrix.dotnet_version }}-pr-test"
+
         Write-Host "Testing that base image includes runner functionality: $imageName"
         
         if ("${{ matrix.platform }}" -eq "linux") {
@@ -365,7 +365,6 @@ jobs:
         $buildArgs = @{
           DotnetVersion        = "${{ matrix.dotnet_version }}"
           DockerRepository     = "${{ env.DOCKER_REPOSITORY_TEST }}"
-          BaseDockerRepository = "${{ env.DOCKER_REPOSITORY_BASE }}"
           DockerPlatform       = $dockerPlatform
           AndroidSdkApiLevel   = "${{ matrix.android_api_level }}"
           Version              = "pr-test"
@@ -381,7 +380,7 @@ jobs:
       if: matrix.build_test == 'true'
       shell: pwsh
       run: |
-        $imageName = "${{ env.DOCKER_REPOSITORY_TEST }}:appium-emulator-${{ matrix.platform }}-android${{ matrix.android_api_level }}-dotnet${{ matrix.dotnet_version }}-pr-test"
+        $imageName = "${{ env.DOCKER_REPOSITORY_TEST }}:android${{ matrix.android_api_level }}-dotnet${{ matrix.dotnet_version }}-pr-test"
         Write-Host "Validating image: $imageName"
         $imageExists = docker images --format "{{.Repository}}:{{.Tag}}" | Select-String -Pattern "$imageName"
         if ($imageExists) {
@@ -396,9 +395,9 @@ jobs:
       if: matrix.build_test == 'true'
       shell: pwsh
       run: |
-        # Construct image name  
-        $imageName = "${{ env.DOCKER_REPOSITORY_TEST }}:appium-emulator-${{ matrix.platform }}-android${{ matrix.android_api_level }}-dotnet${{ matrix.dotnet_version }}-pr-test"
-        
+        # Construct image name
+        $imageName = "${{ env.DOCKER_REPOSITORY_TEST }}:android${{ matrix.android_api_level }}-dotnet${{ matrix.dotnet_version }}-pr-test"
+
         Write-Host "Testing Appium/Emulator functionality of: $imageName"
         
         # Test that Appium is installed
