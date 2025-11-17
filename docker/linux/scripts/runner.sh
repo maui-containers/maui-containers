@@ -6,7 +6,7 @@ log() {
   echo "[runner] $*"
 }
 
-log "MAUI Base Image - Runner initialization"
+log "MAUI Image - Runner initialization"
 
 # Check for and execute initialization scripts if they exist
 INIT_PWSH_SCRIPT=${INIT_PWSH_SCRIPT:-""}

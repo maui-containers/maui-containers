@@ -60,8 +60,8 @@ if (-not $androidDetails) {
 # Extract the dotnet command version for Docker tags
 $dotnetCommandWorkloadSetVersion = $workloadInfo.DotnetCommandWorkloadSetVersion
 
-Write-Host "Building MAUI Base Image for $DockerPlatform"
-Write-Host "=============================================="
+Write-Host "Building MAUI Image for $DockerPlatform"
+Write-Host "========================================"
 Write-Host ".NET Version: $DotnetVersion"
 Write-Host "Workload Set Version: $($workloadInfo.WorkloadSetVersion)"
 Write-Host "Dotnet Command Workload Set Version: $dotnetCommandWorkloadSetVersion"
@@ -88,6 +88,7 @@ Write-Host "Using build context: $contextPath"
 # - dotnet{X.Y} - Latest workload for this .NET version
 # - dotnet{X.Y}-workloads{X.Y.Z} - Specific workload version
 # - dotnet{X.Y}-workloads{X.Y.Z}-v{sha} - SHA-pinned version (optional)
+# If Version is not "latest", also add a custom version tag
 $tags = @()
 
 # 1. dotnet{X.Y} tag (this is the "latest" for this .NET version)
@@ -102,6 +103,12 @@ $tags += $workloadTag
 if ($BuildSha) {
     $shaTag = "$DockerRepository`:dotnet$DotnetVersion-workloads$dotnetCommandWorkloadSetVersion-v$BuildSha"
     $tags += $shaTag
+}
+
+# 4. Optional: Custom version tag (for PR builds, etc.)
+if ($Version -ne "latest") {
+    $customTag = "$DockerRepository`:dotnet$DotnetVersion-$Version"
+    $tags += $customTag
 }
 
 Write-Host "Building Docker image with tags:"
