@@ -46,7 +46,7 @@ env:
 jobs:
   build-tart-macos:
     name: 🍎 Build Tart VM (.NET ${{ inputs.dotnet_channel || '10.0' }})
-    runs-on: macos-latest
+    runs-on: self-hosted
     permissions:
       contents: read
       packages: write
