@@ -92,7 +92,7 @@ jobs:
         echo "Unlocking keychain..."
         security unlock-keychain -p ${{ secrets.CI_KEYCHAIN_PASSWORD }} ~/Library/Keychains/login.keychain-db
         echo "Logging in to GitHub via Tart..."
-        echo "${{ secrets.GITHUB_TOKEN }}" | tart login ghcr.io --username "${{ github.actor }}" --password-stdin
+        echo "${{ secrets.GHCR_TOKEN }}" | tart login ghcr.io --username "${{ github.actor }}" --password-stdin
         echo "Login successful"
 
     - name: 🔧 Build Tart VM Image
