@@ -86,12 +86,16 @@ jobs:
         echo "Disk space after cleanup:"
         df -h
 
+    - name: 🔐 Login to Registry
+      if: github.ref == 'refs/heads/main' || inputs.push_to_registry == true
+      run: |
+        echo "Logging in to Tart registry..."
+        echo "${{ secrets.GITHUB_TOKEN }}" | tart login ghcr.io --username "${{ github.actor }}" --password-stdin
+        echo "Login successful"
+
     - name: 🔧 Build Tart VM Image
       shell: pwsh
       env:
-        # Tart uses these environment variables for OCI registry authentication
-        TART_REGISTRY_USERNAME: ${{ github.actor }}
-        TART_REGISTRY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
         # Packer uses this to authenticate GitHub API requests for plugin downloads
         PACKER_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
