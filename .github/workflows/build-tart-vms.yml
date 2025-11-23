@@ -90,7 +90,7 @@ jobs:
       if: github.ref == 'refs/heads/main' || inputs.push_to_registry == true
       run: |
         echo "Logging in to GitHub via Tart..."
-        echo "${{ secrets.GITHUB_TOKEN }}" | tart login github --username "${{ github.actor }}" --password-stdin
+        echo "${{ secrets.GITHUB_TOKEN }}" | tart login ghcr.io --username "${{ github.actor }}" --password-stdin
         echo "Login successful"
 
     - name: 🔧 Build Tart VM Image
