@@ -15,6 +15,7 @@ Param(
     [string]$BaseXcodeVersion = "",
     [string[]]$AdditionalXcodeVersions = @(),
     [string]$ImageName = "",
+    [string]$RegistryImageName = "",
     [string]$BaseImage = "",
     [string]$Registry = "",
     [string]$BuildSha = "",
@@ -315,6 +316,7 @@ function Start-TartBuild {
 function Push-TartImage {
     param(
         [string]$ImageName,
+        [string]$RegistryImageName,
         [string]$Registry,
         [string]$WorkloadSetVersion,
         [string]$MacOSVersion,
@@ -338,19 +340,22 @@ function Push-TartImage {
         throw "MacOSVersion and DotnetChannel are required for image tagging"
     }
 
+    # Use RegistryImageName for the registry path if provided, otherwise fall back to ImageName
+    $registryName = if ($RegistryImageName) { $RegistryImageName } else { $ImageName }
+
     # 1. macOS + .NET version tag (e.g., :tahoe-dotnet10.0) - this is the "latest" for this .NET version
     $baseTag = "$MacOSVersion-dotnet$DotnetChannel"
-    $tags += "$Registry/${ImageName}:$baseTag"
+    $tags += "$Registry/${registryName}:$baseTag"
 
     # 2. macOS + .NET + Workload tag (e.g., :tahoe-dotnet10.0-workloads10.0.100-rc.2.25024.3)
     if ($WorkloadSetVersion) {
         $workloadTag = "$MacOSVersion-dotnet$DotnetChannel-workloads$WorkloadSetVersion"
-        $tags += "$Registry/${ImageName}:$workloadTag"
+        $tags += "$Registry/${registryName}:$workloadTag"
 
         # 3. Add SHA-pinned tag if BuildSha is provided (e.g., :tahoe-dotnet10.0-workloads10.0.100-rc.2.25024.3-vsha256abc)
         if ($BuildSha) {
             $shaTag = "$workloadTag-v$BuildSha"
-            $tags += "$Registry/${ImageName}:$shaTag"
+            $tags += "$Registry/${registryName}:$shaTag"
         }
     }
 
@@ -476,7 +481,7 @@ try {
 
     # Push to registry if requested
     if ($Push -or $PushOnly) {
-        Push-TartImage -ImageName $ImageName -Registry $Registry -WorkloadSetVersion $resolvedWorkloadSetVersion -MacOSVersion $MacOSVersion -DotnetChannel $DotnetChannel -BuildSha $BuildSha
+        Push-TartImage -ImageName $ImageName -RegistryImageName $RegistryImageName -Registry $Registry -WorkloadSetVersion $resolvedWorkloadSetVersion -MacOSVersion $MacOSVersion -DotnetChannel $DotnetChannel -BuildSha $BuildSha
     }
 
     Write-Host ""
@@ -485,23 +490,26 @@ try {
     } else {
         Write-Host "✅ Build completed successfully!"
     }
-    Write-Host "Image name: $ImageName"
+    Write-Host "Local image name: $ImageName"
+
+    # Use RegistryImageName for display if it was provided and we're pushing
+    $displayRegistryName = if ($RegistryImageName -and (($Push -or $PushOnly) -and $Registry)) { $RegistryImageName } else { $ImageName }
 
     if (($Push -or $PushOnly) -and $Registry) {
         Write-Host ""
         Write-Host "Published tags:"
-        Write-Host "  $Registry/${ImageName}:$MacOSVersion-dotnet$DotnetChannel"
+        Write-Host "  $Registry/${displayRegistryName}:$MacOSVersion-dotnet$DotnetChannel"
         if ($resolvedWorkloadSetVersion) {
-            Write-Host "  $Registry/${ImageName}:$MacOSVersion-dotnet$DotnetChannel-workloads$resolvedWorkloadSetVersion"
+            Write-Host "  $Registry/${displayRegistryName}:$MacOSVersion-dotnet$DotnetChannel-workloads$resolvedWorkloadSetVersion"
             if ($BuildSha) {
-                Write-Host "  $Registry/${ImageName}:$MacOSVersion-dotnet$DotnetChannel-workloads$resolvedWorkloadSetVersion-v$BuildSha"
+                Write-Host "  $Registry/${displayRegistryName}:$MacOSVersion-dotnet$DotnetChannel-workloads$resolvedWorkloadSetVersion-v$BuildSha"
             }
         }
     }
 
     if (-not $DryRun) {
         Write-Host ""
-        Write-Host "To run the VM:"
+        Write-Host "To run the VM locally:"
         Write-Host "  tart run $ImageName"
         Write-Host ""
         Write-Host "To run with directory mounting:"
@@ -510,11 +518,11 @@ try {
         if ($Registry) {
             Write-Host ""
             Write-Host "To pull from registry:"
-            Write-Host "  tart pull $Registry/${ImageName}:$MacOSVersion-dotnet$DotnetChannel"
+            Write-Host "  tart pull $Registry/${displayRegistryName}:$MacOSVersion-dotnet$DotnetChannel"
             if ($resolvedWorkloadSetVersion) {
-                Write-Host "  tart pull $Registry/${ImageName}:$MacOSVersion-dotnet$DotnetChannel-workloads$resolvedWorkloadSetVersion"
+                Write-Host "  tart pull $Registry/${displayRegistryName}:$MacOSVersion-dotnet$DotnetChannel-workloads$resolvedWorkloadSetVersion"
                 if ($BuildSha) {
-                    Write-Host "  tart pull $Registry/${ImageName}:$MacOSVersion-dotnet$DotnetChannel-workloads$resolvedWorkloadSetVersion-v$BuildSha"
+                    Write-Host "  tart pull $Registry/${displayRegistryName}:$MacOSVersion-dotnet$DotnetChannel-workloads$resolvedWorkloadSetVersion-v$BuildSha"
                 }
             }
         }
