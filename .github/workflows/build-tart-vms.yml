@@ -77,8 +77,8 @@ jobs:
         tart list || true
 
         # Remove CI build image if it exists from previous builds
-        echo "Removing maui-macos-ci image if it exists..."
-        tart delete maui-macos-ci 2>&1 || echo "  (image not found, skipping)"
+        echo "Removing maui-macos-ci-dotnet${{ env.DOTNET_CHANNEL }} image if it exists..."
+        tart delete maui-macos-ci-dotnet${{ env.DOTNET_CHANNEL }} 2>&1 || echo "  (image not found, skipping)"
 
         # Remove any existing build artifacts to free up space
         brew cleanup || true
@@ -110,7 +110,7 @@ jobs:
         $buildArgs = @{
           ImageType         = "${{ env.IMAGE_TYPE }}"
           DotnetChannel     = "${{ env.DOTNET_CHANNEL }}"
-          ImageName         = "maui-macos-ci"
+          ImageName         = "maui-macos-ci-dotnet${{ env.DOTNET_CHANNEL }}"
           RegistryImageName = "maui-macos"
         }
 
@@ -216,8 +216,8 @@ jobs:
         tart list
 
         # Remove the CI build image
-        Write-Host "Removing local image: maui-macos-ci"
-        tart delete maui-macos-ci 2>&1 | Out-Null || Write-Host "  (image not found, skipping)"
+        Write-Host "Removing local image: maui-macos-ci-dotnet${{ env.DOTNET_CHANNEL }}"
+        tart delete maui-macos-ci-dotnet${{ env.DOTNET_CHANNEL }} 2>&1 | Out-Null || Write-Host "  (image not found, skipping)"
 
         Write-Host ""
         Write-Host "Images after cleanup:"
