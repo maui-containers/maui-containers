@@ -160,7 +160,9 @@ build {
       "appium driver install mac2 || echo 'Warning: mac2 driver installation failed'",
       "echo 'Appium Drivers installation completed'",
       "echo 'Installing xcodes CLI for Xcode management...'",
-      "# Install xcodes and aria2c for faster downloads",
+      "# Uninstall old xcodes from homebrew/core if it exists",
+      "brew uninstall xcodes 2>/dev/null || echo 'No existing xcodes installation found'",
+      "# Install xcodes from xcodesorg/made tap and aria2c for faster downloads",
       "brew install xcodesorg/made/xcodes aria2",
       "echo 'xcodes CLI installed'",
     ]
