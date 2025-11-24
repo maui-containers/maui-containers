@@ -44,6 +44,11 @@ jobs:
         echo "workload_set_version=$WORKLOAD_SET_VERSION" >> $GITHUB_OUTPUT
         echo "Using workload set version: $WORKLOAD_SET_VERSION"
 
+        # Get short Git SHA for unique build tagging
+        BUILD_SHA=$(git rev-parse --short=8 HEAD)
+        echo "build_sha=$BUILD_SHA" >> $GITHUB_OUTPUT
+        echo "Build SHA: $BUILD_SHA"
+
     - name: 🐋 Login to GitHub Container Registry
       uses: docker/login-action@v3
       with:
@@ -59,6 +64,7 @@ jobs:
           DotNetVersion     = "${{ matrix.DOTNET_VERSION }}"
           Version           = "${{ github.run_id }}"
           DockerPlatform    = "linux/amd64"
+          BuildSha          = "${{ steps.vars.outputs.build_sha }}"
           Load              = $true
         }
         if ("${{ github.ref }}" -eq "refs/heads/main") {

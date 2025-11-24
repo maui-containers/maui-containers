@@ -107,11 +107,17 @@ jobs:
         Write-Host "Workload Set Version: ${{ env.WORKLOAD_SET_VERSION }}"
         Write-Host ""
 
+        # Get short Git SHA for unique build tagging
+        $buildSha = git rev-parse --short=8 HEAD
+        Write-Host "Build SHA: $buildSha"
+        Write-Host ""
+
         $buildArgs = @{
           ImageType         = "${{ env.IMAGE_TYPE }}"
           DotnetChannel     = "${{ env.DOTNET_CHANNEL }}"
           ImageName         = "maui-macos-ci-dotnet${{ env.DOTNET_CHANNEL }}"
           RegistryImageName = "maui-macos"
+          BuildSha          = $buildSha
         }
 
         # Add workload set version if specified
