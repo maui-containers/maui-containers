@@ -321,6 +321,7 @@ function Push-TartImage {
         [string]$WorkloadSetVersion,
         [string]$MacOSVersion,
         [string]$DotnetChannel,
+        [string]$BaseXcodeVersion,
         [string]$BuildSha
     )
 
@@ -331,8 +332,9 @@ function Push-TartImage {
 
     # Build list of tags to push in the format:
     # :{macos}-dotnet{version} (always - this is the "latest" for this .NET version)
-    # :{macos}-dotnet{version}-workloads{workloadversion} (if workload version known)
-    # :{macos}-dotnet{version}-workloads{workloadversion}-v{sha} (if build SHA provided)
+    # :{macos}-dotnet{version}-xcode{version} (if Xcode version known)
+    # :{macos}-dotnet{version}-xcode{version}-workloads{workloadversion} (if both known)
+    # :{macos}-dotnet{version}-xcode{version}-workloads{workloadversion}-v{sha} (if SHA provided)
     $tags = @()
 
     # Validate required components
@@ -343,16 +345,43 @@ function Push-TartImage {
     # Use RegistryImageName for the registry path if provided, otherwise fall back to ImageName
     $registryName = if ($RegistryImageName) { $RegistryImageName } else { $ImageName }
 
+    # Normalize Xcode version (strip @ prefix if it's a digest, extract version number)
+    $xcodeVersionTag = ""
+    if ($BaseXcodeVersion) {
+        if ($BaseXcodeVersion.StartsWith("@")) {
+            # If it's a digest, we can't use it in tag - skip Xcode-specific tags
+            Write-Host "Base Xcode version is a digest - skipping Xcode-specific tags"
+        } else {
+            # Clean version like "26.1" or "16.4"
+            $xcodeVersionTag = $BaseXcodeVersion -replace '[^0-9.]', ''
+        }
+    }
+
     # 1. macOS + .NET version tag (e.g., :tahoe-dotnet10.0) - this is the "latest" for this .NET version
     $baseTag = "$MacOSVersion-dotnet$DotnetChannel"
     $tags += "$Registry/${registryName}:$baseTag"
 
-    # 2. macOS + .NET + Workload tag (e.g., :tahoe-dotnet10.0-workloads10.0.100-rc.2.25024.3)
-    if ($WorkloadSetVersion) {
+    # 2. macOS + .NET + Xcode tag (e.g., :tahoe-dotnet10.0-xcode26.1)
+    if ($xcodeVersionTag) {
+        $xcodeTag = "$MacOSVersion-dotnet$DotnetChannel-xcode$xcodeVersionTag"
+        $tags += "$Registry/${registryName}:$xcodeTag"
+
+        # 3. macOS + .NET + Xcode + Workload tag (e.g., :tahoe-dotnet10.0-xcode26.1-workloads10.0.100.1)
+        if ($WorkloadSetVersion) {
+            $fullTag = "$xcodeTag-workloads$WorkloadSetVersion"
+            $tags += "$Registry/${registryName}:$fullTag"
+
+            # 4. Add SHA-pinned tag if BuildSha is provided (e.g., :tahoe-dotnet10.0-xcode26.1-workloads10.0.100.1-vabc12345)
+            if ($BuildSha) {
+                $shaTag = "$fullTag-v$BuildSha"
+                $tags += "$Registry/${registryName}:$shaTag"
+            }
+        }
+    } elseif ($WorkloadSetVersion) {
+        # Fallback: If no Xcode version tag but we have workloads, use old format
         $workloadTag = "$MacOSVersion-dotnet$DotnetChannel-workloads$WorkloadSetVersion"
         $tags += "$Registry/${registryName}:$workloadTag"
 
-        # 3. Add SHA-pinned tag if BuildSha is provided (e.g., :tahoe-dotnet10.0-workloads10.0.100-rc.2.25024.3-vsha256abc)
         if ($BuildSha) {
             $shaTag = "$workloadTag-v$BuildSha"
             $tags += "$Registry/${registryName}:$shaTag"
@@ -481,7 +510,7 @@ try {
 
     # Push to registry if requested
     if ($Push -or $PushOnly) {
-        Push-TartImage -ImageName $ImageName -RegistryImageName $RegistryImageName -Registry $Registry -WorkloadSetVersion $resolvedWorkloadSetVersion -MacOSVersion $MacOSVersion -DotnetChannel $DotnetChannel -BuildSha $BuildSha
+        Push-TartImage -ImageName $ImageName -RegistryImageName $RegistryImageName -Registry $Registry -WorkloadSetVersion $resolvedWorkloadSetVersion -MacOSVersion $MacOSVersion -DotnetChannel $DotnetChannel -BaseXcodeVersion $BaseXcodeVersion -BuildSha $BuildSha
     }
 
     Write-Host ""
@@ -495,11 +524,28 @@ try {
     # Use RegistryImageName for display if it was provided and we're pushing
     $displayRegistryName = if ($RegistryImageName -and (($Push -or $PushOnly) -and $Registry)) { $RegistryImageName } else { $ImageName }
 
+    # Normalize Xcode version for display
+    $xcodeVersionTag = ""
+    if ($BaseXcodeVersion -and -not $BaseXcodeVersion.StartsWith("@")) {
+        $xcodeVersionTag = $BaseXcodeVersion -replace '[^0-9.]', ''
+    }
+
     if (($Push -or $PushOnly) -and $Registry) {
         Write-Host ""
         Write-Host "Published tags:"
         Write-Host "  $Registry/${displayRegistryName}:$MacOSVersion-dotnet$DotnetChannel"
-        if ($resolvedWorkloadSetVersion) {
+
+        if ($xcodeVersionTag) {
+            Write-Host "  $Registry/${displayRegistryName}:$MacOSVersion-dotnet$DotnetChannel-xcode$xcodeVersionTag"
+
+            if ($resolvedWorkloadSetVersion) {
+                Write-Host "  $Registry/${displayRegistryName}:$MacOSVersion-dotnet$DotnetChannel-xcode$xcodeVersionTag-workloads$resolvedWorkloadSetVersion"
+                if ($BuildSha) {
+                    Write-Host "  $Registry/${displayRegistryName}:$MacOSVersion-dotnet$DotnetChannel-xcode$xcodeVersionTag-workloads$resolvedWorkloadSetVersion-v$BuildSha"
+                }
+            }
+        } elseif ($resolvedWorkloadSetVersion) {
+            # Fallback format if no Xcode version
             Write-Host "  $Registry/${displayRegistryName}:$MacOSVersion-dotnet$DotnetChannel-workloads$resolvedWorkloadSetVersion"
             if ($BuildSha) {
                 Write-Host "  $Registry/${displayRegistryName}:$MacOSVersion-dotnet$DotnetChannel-workloads$resolvedWorkloadSetVersion-v$BuildSha"
@@ -519,7 +565,13 @@ try {
             Write-Host ""
             Write-Host "To pull from registry:"
             Write-Host "  tart pull $Registry/${displayRegistryName}:$MacOSVersion-dotnet$DotnetChannel"
-            if ($resolvedWorkloadSetVersion) {
+
+            if ($xcodeVersionTag -and $resolvedWorkloadSetVersion) {
+                Write-Host "  tart pull $Registry/${displayRegistryName}:$MacOSVersion-dotnet$DotnetChannel-xcode$xcodeVersionTag-workloads$resolvedWorkloadSetVersion"
+                if ($BuildSha) {
+                    Write-Host "  tart pull $Registry/${displayRegistryName}:$MacOSVersion-dotnet$DotnetChannel-xcode$xcodeVersionTag-workloads$resolvedWorkloadSetVersion-v$BuildSha"
+                }
+            } elseif ($resolvedWorkloadSetVersion) {
                 Write-Host "  tart pull $Registry/${displayRegistryName}:$MacOSVersion-dotnet$DotnetChannel-workloads$resolvedWorkloadSetVersion"
                 if ($BuildSha) {
                     Write-Host "  tart pull $Registry/${displayRegistryName}:$MacOSVersion-dotnet$DotnetChannel-workloads$resolvedWorkloadSetVersion-v$BuildSha"

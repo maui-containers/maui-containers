@@ -178,10 +178,16 @@ jobs:
       shell: pwsh
       working-directory: ./docker/test/
       run: |
+        # Get short Git SHA for unique build tagging
+        $buildSha = git rev-parse --short=8 HEAD
+        Write-Host "Build SHA: $buildSha"
+        Write-Host ""
+
         # Build arguments
         $buildArgs = @{
           AndroidSdkApiLevel  = "${{ matrix.android_api_level }}"
           Version             = "${{ github.run_id }}"
+          BuildSha            = $buildSha
           Load                = $true
         }
 
