@@ -181,12 +181,46 @@ jobs:
         Write-Host "Matrix: $matrixJson"
         echo "matrix=$matrixJson" >> $env:GITHUB_OUTPUT
 
-  # Step 2: Build Images (no push)
+  # Step 2: Determine what changed
+  detect-changes:
+    name: 🔍 Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      docker-linux: ${{ steps.filter.outputs.docker-linux }}
+      docker-windows: ${{ steps.filter.outputs.docker-windows }}
+      tart-macos: ${{ steps.filter.outputs.tart-macos }}
+      common: ${{ steps.filter.outputs.common }}
+    steps:
+    - name: 🛒 Checkout
+      uses: actions/checkout@v4
+
+    - name: 🔍 Check changed files
+      uses: dorny/paths-filter@v3
+      id: filter
+      with:
+        filters: |
+          docker-linux:
+            - 'docker/linux/**'
+            - 'docker/build.ps1'
+          docker-windows:
+            - 'docker/windows/**'
+            - 'docker/build.ps1'
+          tart-macos:
+            - 'tart/**'
+          common:
+            - 'common-functions.ps1'
+            - '.github/workflows/**'
+
+  # Step 3: Build Docker Images (no push)
   build-images:
     name: 🔨 Build Images (${{ matrix.platform }}, .NET ${{ matrix.dotnet_version }})
     runs-on: ${{ matrix.runner_os }}
-    needs: validate-workloads
-    if: needs.validate-workloads.result == 'success'
+    needs: [validate-workloads, detect-changes]
+    if: |
+      needs.validate-workloads.result == 'success' &&
+      (needs.detect-changes.outputs.common == 'true' ||
+       (matrix.platform == 'linux' && needs.detect-changes.outputs.docker-linux == 'true') ||
+       (matrix.platform == 'windows' && needs.detect-changes.outputs.docker-windows == 'true'))
     strategy:
       matrix: ${{ fromJson(needs.validate-workloads.outputs.matrix) }}
       fail-fast: false
@@ -424,11 +458,112 @@ jobs:
           Write-Warning "⚠️ Android ${{ matrix.android_api_level }} system images not found"
         }
 
-  # Step 3: Summary and cleanup
+  # Step 4: Build Tart VM Images (macOS only)
+  build-tart-images:
+    name: 🍎 Build Tart VM (.NET ${{ matrix.dotnet_version }})
+    runs-on: self-hosted
+    needs: [validate-workloads, detect-changes]
+    if: |
+      needs.validate-workloads.result == 'success' &&
+      (needs.detect-changes.outputs.common == 'true' ||
+       needs.detect-changes.outputs.tart-macos == 'true')
+    strategy:
+      matrix:
+        dotnet_version: ["9.0", "10.0"]
+      fail-fast: false
+
+    steps:
+    - name: 🛒 Checkout
+      uses: actions/checkout@v4
+
+    - name: 🔧 Install Prerequisites
+      run: |
+        echo "Verifying Tart and Packer installation..."
+        if ! command -v tart &> /dev/null; then
+          echo "Installing Tart..."
+          brew install cirruslabs/cli/tart
+        fi
+
+        if ! command -v packer &> /dev/null; then
+          echo "Installing Packer..."
+          brew install hashicorp/tap/packer
+        fi
+
+        if ! command -v jq &> /dev/null; then
+          echo "Installing jq..."
+          brew install jq
+        fi
+
+        echo "Verifying installations..."
+        tart --version
+        packer --version
+        jq --version
+        pwsh --version
+
+    - name: 🧹 Clean Up Old PR Test Images
+      run: |
+        echo "Cleaning up old PR test images..."
+        tart list || true
+
+        # Remove PR test image if it exists
+        echo "Removing maui-macos-pr-test-dotnet${{ matrix.dotnet_version }} image if it exists..."
+        tart delete maui-macos-pr-test-dotnet${{ matrix.dotnet_version }} 2>&1 || echo "  (image not found, skipping)"
+
+    - name: 🔧 Build Tart VM Image
+      shell: pwsh
+      env:
+        PACKER_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        Write-Host "=== PR Validation - Tart VM Build ==="
+        Write-Host ".NET Channel: ${{ matrix.dotnet_version }}"
+        Write-Host ""
+
+        $buildArgs = @{
+          ImageType         = "maui"
+          DotnetChannel     = "${{ matrix.dotnet_version }}"
+          ImageName         = "maui-macos-pr-test-dotnet${{ matrix.dotnet_version }}"
+        }
+
+        Write-Host "Building Tart VM image (no push)..."
+        Write-Host ""
+
+        cd tart/macos/scripts
+        ./build.ps1 @buildArgs
+
+    - name: 🔍 Validate Tart VM Image
+      shell: pwsh
+      run: |
+        $imageName = "maui-macos-pr-test-dotnet${{ matrix.dotnet_version }}"
+        Write-Host "Validating Tart VM image: $imageName"
+
+        $images = tart list
+        Write-Host "Available images:"
+        Write-Host $images
+
+        if ($images -match [regex]::Escape($imageName)) {
+          Write-Host "✅ Tart VM image built successfully: $imageName"
+        } else {
+          Write-Error "❌ Tart VM image not found: $imageName"
+          exit 1
+        }
+
+    - name: 🧹 Cleanup PR Test Images
+      if: always()
+      shell: pwsh
+      run: |
+        Write-Host "Cleaning up PR test Tart images..."
+
+        $imageName = "maui-macos-pr-test-dotnet${{ matrix.dotnet_version }}"
+        Write-Host "Removing PR test image: $imageName"
+        tart delete $imageName 2>&1 | Out-Null || Write-Host "  (image not found, skipping)"
+
+        Write-Host "Cleanup complete"
+
+  # Step 5: Summary and cleanup
   pr-validation-summary:
     name: 📋 PR Validation Summary
     runs-on: ubuntu-latest
-    needs: [validate-workloads, build-images]
+    needs: [validate-workloads, detect-changes, build-images, build-tart-images]
     if: always()
     
     steps:
@@ -436,7 +571,23 @@ jobs:
       run: |
         echo "## 🔍 PR Validation Results" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        
+
+        # Show what changed
+        echo "### 📝 Changes Detected" >> $GITHUB_STEP_SUMMARY
+        if [ "${{ needs.detect-changes.outputs.docker-linux }}" == "true" ]; then
+          echo "- 🐧 Docker Linux files" >> $GITHUB_STEP_SUMMARY
+        fi
+        if [ "${{ needs.detect-changes.outputs.docker-windows }}" == "true" ]; then
+          echo "- 🪟 Docker Windows files" >> $GITHUB_STEP_SUMMARY
+        fi
+        if [ "${{ needs.detect-changes.outputs.tart-macos }}" == "true" ]; then
+          echo "- 🍎 Tart macOS files" >> $GITHUB_STEP_SUMMARY
+        fi
+        if [ "${{ needs.detect-changes.outputs.common }}" == "true" ]; then
+          echo "- 🔧 Common/workflow files (tests all platforms)" >> $GITHUB_STEP_SUMMARY
+        fi
+        echo "" >> $GITHUB_STEP_SUMMARY
+
         # Workload validation results
         echo "### Workload Discovery" >> $GITHUB_STEP_SUMMARY
         if [ "${{ needs.validate-workloads.result }}" == "success" ]; then
@@ -446,34 +597,69 @@ jobs:
         fi
         echo "" >> $GITHUB_STEP_SUMMARY
         
-        # Build results
+        # Docker build results
         echo "### Docker Image Builds" >> $GITHUB_STEP_SUMMARY
-        if [ "${{ needs.build-images.result }}" == "success" ]; then
-          echo "✅ **All image builds successful** - Images built and validated locally" >> $GITHUB_STEP_SUMMARY
+        if [ "${{ needs.detect-changes.outputs.docker-linux }}" != "true" ] && [ "${{ needs.detect-changes.outputs.docker-windows }}" != "true" ] && [ "${{ needs.detect-changes.outputs.common }}" != "true" ]; then
+          echo "⏭️ **Docker builds skipped** - No Docker-related files changed" >> $GITHUB_STEP_SUMMARY
+        elif [ "${{ needs.build-images.result }}" == "success" ]; then
+          echo "✅ **All Docker image builds successful** - Images built and validated locally" >> $GITHUB_STEP_SUMMARY
         elif [ "${{ needs.build-images.result }}" == "failure" ]; then
-          echo "❌ **Some image builds failed** - Check individual build jobs for details" >> $GITHUB_STEP_SUMMARY
+          echo "❌ **Some Docker image builds failed** - Check individual build jobs for details" >> $GITHUB_STEP_SUMMARY
         elif [ "${{ needs.build-images.result }}" == "cancelled" ]; then
-          echo "⚠️ **Image builds cancelled** - Builds were cancelled (possibly due to workload validation failure)" >> $GITHUB_STEP_SUMMARY
+          echo "⚠️ **Docker image builds cancelled** - Builds were cancelled" >> $GITHUB_STEP_SUMMARY
         else
-          echo "⏭️ **Image builds skipped** - Builds were skipped due to earlier failures" >> $GITHUB_STEP_SUMMARY
+          echo "⏭️ **Docker image builds skipped** - Skipped due to workload validation failure" >> $GITHUB_STEP_SUMMARY
         fi
         echo "" >> $GITHUB_STEP_SUMMARY
-        
+
+        # Tart build results
+        echo "### Tart VM Image Builds" >> $GITHUB_STEP_SUMMARY
+        if [ "${{ needs.detect-changes.outputs.tart-macos }}" != "true" ] && [ "${{ needs.detect-changes.outputs.common }}" != "true" ]; then
+          echo "⏭️ **Tart builds skipped** - No Tart-related files changed" >> $GITHUB_STEP_SUMMARY
+        elif [ "${{ needs.build-tart-images.result }}" == "success" ]; then
+          echo "✅ **All Tart VM image builds successful** - VMs built and validated locally" >> $GITHUB_STEP_SUMMARY
+        elif [ "${{ needs.build-tart-images.result }}" == "failure" ]; then
+          echo "❌ **Some Tart VM image builds failed** - Check individual build jobs for details" >> $GITHUB_STEP_SUMMARY
+        elif [ "${{ needs.build-tart-images.result }}" == "cancelled" ]; then
+          echo "⚠️ **Tart VM image builds cancelled** - Builds were cancelled" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "⏭️ **Tart VM image builds skipped** - Skipped due to workload validation failure" >> $GITHUB_STEP_SUMMARY
+        fi
+        echo "" >> $GITHUB_STEP_SUMMARY
+
         # Overall status
         echo "### Overall Status" >> $GITHUB_STEP_SUMMARY
-        if [ "${{ needs.validate-workloads.result }}" == "success" ] && [ "${{ needs.build-images.result }}" == "success" ]; then
-          echo "🎉 **PR validation passed!** This PR is ready for review." >> $GITHUB_STEP_SUMMARY
+
+        # Check if workloads failed
+        if [ "${{ needs.validate-workloads.result }}" != "success" ]; then
+          echo "🚫 **PR validation failed** - Workload discovery failed" >> $GITHUB_STEP_SUMMARY
+        # Check if any required builds failed
+        elif [ "${{ needs.build-images.result }}" == "failure" ] || [ "${{ needs.build-tart-images.result }}" == "failure" ]; then
+          echo "🚫 **PR validation failed** - Some builds failed" >> $GITHUB_STEP_SUMMARY
         else
-          echo "🚫 **PR validation failed** - Please fix the issues before merging." >> $GITHUB_STEP_SUMMARY
+          echo "🎉 **PR validation passed!** This PR is ready for review." >> $GITHUB_STEP_SUMMARY
         fi
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "**Note:** No images were pushed to registries during this validation." >> $GITHUB_STEP_SUMMARY
+        echo "**Note:** Only changed components were tested. No images were pushed to registries." >> $GITHUB_STEP_SUMMARY
 
-    - name: 🔍 Set Job Status  
+    - name: 🔍 Set Job Status
       run: |
-        if [ "${{ needs.validate-workloads.result }}" != "success" ] || [ "${{ needs.build-images.result }}" != "success" ]; then
-          echo "PR validation failed"
+        # Fail if workloads failed
+        if [ "${{ needs.validate-workloads.result }}" != "success" ]; then
+          echo "PR validation failed: workload discovery failed"
           exit 1
-        else
-          echo "PR validation passed"
         fi
+
+        # Fail if Docker builds were run and failed
+        if [ "${{ needs.build-images.result }}" == "failure" ]; then
+          echo "PR validation failed: Docker builds failed"
+          exit 1
+        fi
+
+        # Fail if Tart builds were run and failed
+        if [ "${{ needs.build-tart-images.result }}" == "failure" ]; then
+          echo "PR validation failed: Tart builds failed"
+          exit 1
+        fi
+
+        echo "PR validation passed"
