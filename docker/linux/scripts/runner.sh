@@ -88,6 +88,16 @@ start_github_runner() {
     log "Old GitHub configuration removed"
   fi
 
+  # Create .env file with Android SDK environment variables
+  # This ensures ANDROID_HOME is available to all runner jobs
+  log "Creating .env file with ANDROID_HOME environment variable"
+  cat > .env << EOF
+ANDROID_HOME=${ANDROID_HOME}
+ANDROID_SDK_HOME=${ANDROID_SDK_HOME}
+ANDROID_SDK_ROOT=${ANDROID_HOME}
+EOF
+  log ".env file created with ANDROID_HOME=${ANDROID_HOME}"
+
   _RANDOM_RUNNER_SUFFIX=${RANDOM_RUNNER_SUFFIX:="true"}
   _RUNNER_NAME=${RUNNER_NAME:-${RUNNER_NAME_PREFIX:-github-runner}-$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 13 ; echo '')}
   if [[ ${RANDOM_RUNNER_SUFFIX} != "true" ]]; then
@@ -201,6 +211,16 @@ start_gitea_runner() {
     rm -f .runner
     log "Old Gitea configuration removed"
   fi
+
+  # Create .env file with Android SDK environment variables
+  # This ensures ANDROID_HOME is available to all runner jobs
+  log "Creating .env file with ANDROID_HOME environment variable"
+  cat > .env << EOF
+ANDROID_HOME=${ANDROID_HOME}
+ANDROID_SDK_HOME=${ANDROID_SDK_HOME}
+ANDROID_SDK_ROOT=${ANDROID_HOME}
+EOF
+  log ".env file created with ANDROID_HOME=${ANDROID_HOME}"
 
   log "Registering Gitea runner: ${_RUNNER_NAME}"
   log "Labels: ${_LABELS}"
