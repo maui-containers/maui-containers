@@ -105,6 +105,17 @@ function Start-GitHubRunner {
         Write-Log "Old GitHub configuration removed"
     }
 
+    # Create .env file with Android SDK environment variables
+    # This ensures ANDROID_HOME is available to all runner jobs
+    Write-Log "Creating .env file with ANDROID_HOME environment variable"
+    $envContent = @"
+ANDROID_HOME=$env:ANDROID_HOME
+ANDROID_SDK_HOME=$env:ANDROID_SDK_HOME
+ANDROID_SDK_ROOT=$env:ANDROID_HOME
+"@
+    Set-Content -Path ".env" -Value $envContent
+    Write-Log ".env file created with ANDROID_HOME=$env:ANDROID_HOME"
+
     # Set runner name with appropriate suffix
     $RANDOM_RUNNER_SUFFIX = if ($env:RANDOM_RUNNER_SUFFIX) { $env:RANDOM_RUNNER_SUFFIX } else { "true" }
     $RUNNER_NAME_PREFIX = if ($env:RUNNER_NAME_PREFIX) { $env:RUNNER_NAME_PREFIX } else { "github-runner" }
@@ -208,6 +219,17 @@ function Start-GiteaRunner {
         Remove-Item -Path ".runner" -ErrorAction SilentlyContinue -Force
         Write-Log "Old Gitea configuration removed"
     }
+
+    # Create .env file with Android SDK environment variables
+    # This ensures ANDROID_HOME is available to all runner jobs
+    Write-Log "Creating .env file with ANDROID_HOME environment variable"
+    $envContent = @"
+ANDROID_HOME=$env:ANDROID_HOME
+ANDROID_SDK_HOME=$env:ANDROID_SDK_HOME
+ANDROID_SDK_ROOT=$env:ANDROID_HOME
+"@
+    Set-Content -Path ".env" -Value $envContent
+    Write-Log ".env file created with ANDROID_HOME=$env:ANDROID_HOME"
 
     Write-Log "Registering Gitea runner: $_RUNNER_NAME"
     Write-Log "Labels: $_LABELS"
