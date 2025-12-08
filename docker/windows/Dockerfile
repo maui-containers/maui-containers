@@ -43,8 +43,8 @@ ENV GITEA_RUNNER_NAME_PREFIX="gitea-runner"
 ENV GITEA_RUNNER_LABELS="maui,windows,amd64"
 
 # Set core environment variables
-ENV ANDROID_HOME="C:/androidsdk"
-ENV ANDROID_SDK_HOME=$ANDROID_HOME
+ENV ANDROID_HOME="C:/android-sdk"
+ENV ANDROID_SDK_ROOT="C:/android-sdk"
 ENV LOG_PATH="C:\\logs\\"
 
 # Set PowerShell as the default shell

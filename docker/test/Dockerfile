@@ -58,8 +58,8 @@ ENV INIT_BASH_SCRIPT="/config/init.sh"
 
 # Set core environment variables
 ENV NODE_VERSION=22.x \
-    ANDROID_HOME=/home/mauiusr/.android \
-    ANDROID_SDK_HOME=/home/mauiusr/.android \
+    ANDROID_HOME=/home/mauiusr/android-sdk \
+    ANDROID_SDK_ROOT=/home/mauiusr/android-sdk \
     DEBIAN_FRONTEND=noninteractive \
     LOG_PATH=/logs \
     JAVA_HOME="/usr/lib/jvm/msopenjdk-${JDK_MAJOR_VERSION}-${TARGETARCH}"

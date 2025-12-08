@@ -46,8 +46,8 @@ ENV GITEA_RUNNER_NAME_PREFIX="gitea-runner"
 ENV GITEA_RUNNER_LABELS="maui,linux,amd64"
 
 # Set core environment variables
-ENV ANDROID_HOME=/home/mauiusr/.android \
-    ANDROID_SDK_HOME=/home/mauiusr/.android \
+ENV ANDROID_HOME=/home/mauiusr/android-sdk \
+    ANDROID_SDK_ROOT=/home/mauiusr/android-sdk \
     DEBIAN_FRONTEND=noninteractive \
     LOG_PATH=/logs \
     JAVA_HOME="/usr/lib/jvm/msopenjdk-${JDK_MAJOR_VERSION}-${TARGETARCH}"
