@@ -60,7 +60,7 @@ if command -v dotnet >/dev/null 2>&1; then
 
   # Workloads
   echo "    \"workloads\": [" >> "${TEMP_FILE}"
-  dotnet workload list 2>/dev/null | tail -n +3 | head -n -2 | awk '{print "      \"" $1 "\""}' | paste -sd ',' - >> "${TEMP_FILE}" || echo '      ' >> "${TEMP_FILE}"
+  dotnet workload list 2>/dev/null | tail -n +3 | head -n -2 | awk 'NF && $1 !~ /^-+$/ && $1 != "Installed" {print "      \"" $1 "\""}' | paste -sd ',' - >> "${TEMP_FILE}" || echo '      ' >> "${TEMP_FILE}"
   echo "    ]," >> "${TEMP_FILE}"
 
   # Global tools
@@ -88,12 +88,14 @@ if [[ -d "${ANDROID_HOME}" ]]; then
   if command -v android >/dev/null 2>&1; then
     # Platforms
     echo "    \"platforms\": [" >> "${TEMP_FILE}"
-    android sdk list --installed --format=json 2>/dev/null | jq -r '.installed[] | select(.path | startswith("platforms;")) | .path' | awk '{print "      \"" $1 "\""}' | paste -sd ',' - >> "${TEMP_FILE}" 2>/dev/null || echo '      ' >> "${TEMP_FILE}"
+    android sdk list --installed --format=json 2>/dev/null | jq -r '.installed[]? | select(.path | startswith("platforms;")) | .path' 2>/dev/null | awk '{print "      \"" $1 "\""}' | paste -sd ',' - >> "${TEMP_FILE}" 2>/dev/null || echo -n '' >> "${TEMP_FILE}"
+    echo "" >> "${TEMP_FILE}"
     echo "    ]," >> "${TEMP_FILE}"
 
     # Build tools
     echo "    \"buildTools\": [" >> "${TEMP_FILE}"
-    android sdk list --installed --format=json 2>/dev/null | jq -r '.installed[] | select(.path | startswith("build-tools;")) | .path' | awk '{print "      \"" $1 "\""}' | paste -sd ',' - >> "${TEMP_FILE}" 2>/dev/null || echo '      ' >> "${TEMP_FILE}"
+    android sdk list --installed --format=json 2>/dev/null | jq -r '.installed[]? | select(.path | startswith("build-tools;")) | .path' 2>/dev/null | awk '{print "      \"" $1 "\""}' | paste -sd ',' - >> "${TEMP_FILE}" 2>/dev/null || echo -n '' >> "${TEMP_FILE}"
+    echo "" >> "${TEMP_FILE}"
     echo "    ]" >> "${TEMP_FILE}"
   else
     echo "    \"platforms\": []," >> "${TEMP_FILE}"
