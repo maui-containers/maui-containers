@@ -36,6 +36,10 @@ on:
         description: 'Docker registry for pushing images (optional)'
         required: false
         type: string
+      base_xcode_version:
+        description: 'Override base Xcode version (tag or @sha256:digest). Leave empty for auto-detect from workloads.'
+        required: false
+        type: string
 
 env:
   DOTNET_CHANNEL: ${{ inputs.dotnet_channel || '10.0' }}
@@ -126,6 +130,14 @@ jobs:
           Write-Host "Using specific workload set version: ${{ env.WORKLOAD_SET_VERSION }}"
         } else {
           Write-Host "No workload set version specified - will auto-detect latest"
+        }
+
+        # Add base Xcode version override if specified
+        if ("${{ inputs.base_xcode_version }}" -ne "") {
+          $buildArgs.BaseXcodeVersion = "${{ inputs.base_xcode_version }}"
+          Write-Host "Using specified base Xcode version: ${{ inputs.base_xcode_version }}"
+        } else {
+          Write-Host "No base Xcode version specified - will auto-detect from workload requirements"
         }
 
         # Note: -Force is not needed since we delete maui-macos-ci before building

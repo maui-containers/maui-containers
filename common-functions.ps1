@@ -905,6 +905,545 @@ function Get-WorkloadInfo {
     return $result
 }
 
+# ============================================================================
+# Cirrus Labs Base Image Selection Functions
+# ============================================================================
+
+# Function to parse NuGet/Maven version range notation
+# Supports: [min,max], (min,max), [min,max), (min,max], [min,), (min,), etc.
+function Parse-NuGetVersionRange {
+    param(
+        [Parameter(Mandatory=$true)]
+        [string]$VersionRange
+    )
+
+    Write-Host "Parsing version range: $VersionRange"
+
+    # Handle empty or null
+    if ([string]::IsNullOrWhiteSpace($VersionRange)) {
+        Write-Warning "Empty version range provided"
+        return $null
+    }
+
+    # Regex to parse version range: [16.0,17.0) or (16.0,17.0] etc.
+    # Captures: opening bracket, min version, max version (optional), closing bracket
+    $pattern = '^([\[\(])([^,\]\)]+)(?:,([^\]\)]*))?([\]\)])$'
+
+    if ($VersionRange -match $pattern) {
+        $openBracket = $Matches[1]
+        $minVersionStr = $Matches[2].Trim()
+        $maxVersionStr = if ($Matches[3]) { $Matches[3].Trim() } else { $null }
+        $closeBracket = $Matches[4]
+
+        # Parse versions
+        $minVersion = $null
+        $maxVersion = $null
+
+        if (-not [string]::IsNullOrWhiteSpace($minVersionStr)) {
+            try {
+                $minVersion = [Version]$minVersionStr
+            } catch {
+                Write-Warning "Failed to parse min version: $minVersionStr"
+            }
+        }
+
+        if (-not [string]::IsNullOrWhiteSpace($maxVersionStr)) {
+            try {
+                $maxVersion = [Version]$maxVersionStr
+            } catch {
+                Write-Warning "Failed to parse max version: $maxVersionStr"
+            }
+        }
+
+        $result = @{
+            MinVersion = $minVersion
+            MaxVersion = $maxVersion
+            MinInclusive = ($openBracket -eq '[')
+            MaxInclusive = ($closeBracket -eq ']')
+            OriginalRange = $VersionRange
+        }
+
+        Write-Host "  Min: $($result.MinVersion) (inclusive: $($result.MinInclusive))"
+        Write-Host "  Max: $($result.MaxVersion) (inclusive: $($result.MaxInclusive))"
+
+        return $result
+    } else {
+        Write-Warning "Version range '$VersionRange' does not match expected format"
+        return $null
+    }
+}
+
+# Function to test if a version satisfies a parsed version range
+function Test-VersionInRange {
+    param(
+        [Parameter(Mandatory=$true)]
+        [Version]$Version,
+
+        [Parameter(Mandatory=$true)]
+        [hashtable]$VersionRange
+    )
+
+    # Check minimum bound
+    if ($VersionRange.MinVersion) {
+        if ($VersionRange.MinInclusive) {
+            if ($Version -lt $VersionRange.MinVersion) {
+                return $false
+            }
+        } else {
+            if ($Version -le $VersionRange.MinVersion) {
+                return $false
+            }
+        }
+    }
+
+    # Check maximum bound
+    if ($VersionRange.MaxVersion) {
+        if ($VersionRange.MaxInclusive) {
+            if ($Version -gt $VersionRange.MaxVersion) {
+                return $false
+            }
+        } else {
+            if ($Version -ge $VersionRange.MaxVersion) {
+                return $false
+            }
+        }
+    }
+
+    return $true
+}
+
+# Function to get mapping between macOS versions, Cirrus Labs tags, and Xcode versions
+function Get-CirrusLabsXcodeMapping {
+    param(
+        [Parameter(Mandatory=$true)]
+        [string]$MacOSVersion  # e.g., "tahoe", "sequoia"
+    )
+
+    # Mapping of macOS versions to their internal version numbers and Xcode base versions
+    # Cirrus Labs naming: macos-{version}-xcode:{internal_version}.{xcode_minor}
+    # For Tahoe: internal version is 26, Xcode base is 16
+    # Tag "26" = Xcode 16.0, "26.1" = Xcode 16.1, "26.2" = Xcode 16.2
+    $macOSMappings = @{
+        "tahoe" = @{
+            InternalVersion = 26
+            XcodeBaseVersion = 16
+            MacOSVersion = "16"
+        }
+        "sequoia" = @{
+            InternalVersion = 15  # Sequoia uses different scheme
+            XcodeBaseVersion = 16
+            MacOSVersion = "15"
+        }
+    }
+
+    $mapping = $macOSMappings[$MacOSVersion.ToLower()]
+    if (-not $mapping) {
+        Write-Warning "Unknown macOS version: $MacOSVersion. Supported: $($macOSMappings.Keys -join ', ')"
+        return $null
+    }
+
+    return @{
+        MacOSVersion = $MacOSVersion
+        InternalVersion = $mapping.InternalVersion
+        XcodeBaseVersion = $mapping.XcodeBaseVersion
+    }
+}
+
+# Function to convert a Cirrus Labs tag to an Xcode version
+function Convert-CirrusTagToXcodeVersion {
+    param(
+        [Parameter(Mandatory=$true)]
+        [string]$Tag,
+
+        [Parameter(Mandatory=$true)]
+        [hashtable]$Mapping
+    )
+
+    # Parse the tag: "26" -> 26.0, "26.1" -> 26.1, "26.1.1" -> 26.1.1
+    $tagParts = $Tag -split '\.'
+
+    $internalMajor = [int]$tagParts[0]
+    $minor = if ($tagParts.Count -gt 1) { $tagParts[1] } else { "0" }
+    $patch = if ($tagParts.Count -gt 2) { $tagParts[2] } else { $null }
+
+    # Calculate Xcode version based on the mapping
+    # For Tahoe: tag 26.x -> Xcode 16.x
+    $xcodeVersionDiff = $internalMajor - $Mapping.InternalVersion
+    $xcodeMajor = $Mapping.XcodeBaseVersion + $xcodeVersionDiff
+
+    if ($patch) {
+        return "$xcodeMajor.$minor.$patch"
+    } else {
+        return "$xcodeMajor.$minor"
+    }
+}
+
+# Function to convert an Xcode version to a Cirrus Labs tag
+function Convert-XcodeVersionToCirrusTag {
+    param(
+        [Parameter(Mandatory=$true)]
+        [string]$XcodeVersion,
+
+        [Parameter(Mandatory=$true)]
+        [hashtable]$Mapping
+    )
+
+    $versionParts = $XcodeVersion -split '\.'
+    $xcodeMajor = [int]$versionParts[0]
+    $minor = if ($versionParts.Count -gt 1) { $versionParts[1] } else { "0" }
+    $patch = if ($versionParts.Count -gt 2) { $versionParts[2] } else { $null }
+
+    # Calculate Cirrus tag from Xcode version
+    # For Tahoe: Xcode 16.x -> tag 26.x
+    $tagMajor = $Mapping.InternalVersion + ($xcodeMajor - $Mapping.XcodeBaseVersion)
+
+    if ($patch -and $patch -ne "0") {
+        return "$tagMajor.$minor.$patch"
+    } elseif ($minor -ne "0") {
+        return "$tagMajor.$minor"
+    } else {
+        return "$tagMajor"
+    }
+}
+
+# Function to query available Cirrus Labs base image tags from GHCR
+function Get-CirrusLabsAvailableTags {
+    param(
+        [Parameter(Mandatory=$true)]
+        [string]$MacOSVersion  # e.g., "tahoe", "sequoia"
+    )
+
+    $repository = "ghcr.io/cirruslabs/macos-$MacOSVersion-xcode"
+    Write-Host "Querying available tags from: $repository"
+
+    # Parse repository for GHCR API call
+    if ($repository -match '^ghcr\.io/([^/]+)/(.+)$') {
+        $owner = $Matches[1]
+        $packageName = $Matches[2]
+
+        $ghcrUri = "https://api.github.com/orgs/$owner/packages/container/$packageName/versions?per_page=100"
+        Write-Host "Querying GitHub Container Registry API: $ghcrUri"
+
+        $headers = @{
+            Accept = "application/vnd.github+json"
+            "X-GitHub-Api-Version" = "2022-11-28"
+        }
+
+        # Add auth token if available (required for GHCR packages API)
+        if ($env:GITHUB_TOKEN) {
+            $headers["Authorization"] = "Bearer $env:GITHUB_TOKEN"
+        }
+
+        try {
+            $response = Invoke-RestMethod -Uri $ghcrUri -Headers $headers -TimeoutSec 30
+
+            # Extract all tags from the response
+            $tags = @()
+            foreach ($version in $response) {
+                if ($version.metadata -and $version.metadata.container -and $version.metadata.container.tags) {
+                    $tags += $version.metadata.container.tags
+                }
+            }
+
+            # Remove duplicates, filter out non-version tags, and sort
+            $versionTags = $tags | Where-Object { $_ -match '^\d+(\.\d+)*$' } | Sort-Object -Unique
+
+            Write-Host "Found $($versionTags.Count) version tags: $($versionTags -join ', ')"
+            return $versionTags
+        }
+        catch {
+            Write-Warning "Failed to query GHCR API: $($_.Exception.Message)"
+            Write-Host "Note: GHCR packages API requires GITHUB_TOKEN. Falling back to known tags..."
+
+            # Fallback: Try to probe known tags using docker manifest
+            return Get-CirrusLabsKnownTags -MacOSVersion $MacOSVersion
+        }
+    } else {
+        Write-Warning "Invalid repository format: $repository"
+        return @()
+    }
+}
+
+# Fallback function to probe known Cirrus Labs tags when API is unavailable
+function Get-CirrusLabsKnownTags {
+    param(
+        [Parameter(Mandatory=$true)]
+        [string]$MacOSVersion
+    )
+
+    Write-Host "Probing for known Cirrus Labs tags..."
+
+    # Known tag patterns for Cirrus Labs macOS images
+    $knownPatterns = switch ($MacOSVersion.ToLower()) {
+        "tahoe" { @("26", "26.1", "26.1.1", "26.2", "26.2.1", "26.3") }
+        "sequoia" { @("16", "16.1", "16.2", "16.3", "16.4") }
+        default { @() }
+    }
+
+    $availableTags = @()
+    $repository = "ghcr.io/cirruslabs/macos-$MacOSVersion-xcode"
+
+    foreach ($tag in $knownPatterns) {
+        try {
+            # Use docker manifest inspect to check if tag exists
+            $result = & docker manifest inspect "${repository}:${tag}" 2>&1
+            if ($LASTEXITCODE -eq 0) {
+                $availableTags += $tag
+                Write-Host "  Found tag: $tag"
+            }
+        } catch {
+            # Tag doesn't exist, skip
+        }
+    }
+
+    Write-Host "Found $($availableTags.Count) available tags via probing"
+    return $availableTags
+}
+
+# Function to get SHA256 digest for a specific Cirrus Labs image tag
+function Get-CirrusLabsImageDigest {
+    param(
+        [Parameter(Mandatory=$true)]
+        [string]$MacOSVersion,
+
+        [Parameter(Mandatory=$true)]
+        [string]$Tag
+    )
+
+    $repository = "ghcr.io/cirruslabs/macos-$MacOSVersion-xcode"
+    Write-Host "Getting digest for: ${repository}:${Tag}"
+
+    # Parse repository for GHCR API call
+    if ($repository -match '^ghcr\.io/([^/]+)/(.+)$') {
+        $owner = $Matches[1]
+        $packageName = $Matches[2]
+
+        $ghcrUri = "https://api.github.com/orgs/$owner/packages/container/$packageName/versions?per_page=100"
+
+        $headers = @{
+            Accept = "application/vnd.github+json"
+            "X-GitHub-Api-Version" = "2022-11-28"
+        }
+
+        if ($env:GITHUB_TOKEN) {
+            $headers["Authorization"] = "Bearer $env:GITHUB_TOKEN"
+        }
+
+        try {
+            $response = Invoke-RestMethod -Uri $ghcrUri -Headers $headers -TimeoutSec 30
+
+            # Find the version with the matching tag
+            foreach ($version in $response) {
+                if ($version.metadata -and $version.metadata.container -and $version.metadata.container.tags) {
+                    if ($version.metadata.container.tags -contains $Tag) {
+                        # The version name is the digest
+                        $digest = $version.name
+                        Write-Host "Found digest for tag '$Tag': $digest"
+                        return $digest
+                    }
+                }
+            }
+
+            Write-Warning "Tag '$Tag' not found in repository"
+            return $null
+        }
+        catch {
+            Write-Warning "Failed to get digest from GHCR API: $($_.Exception.Message)"
+            Write-Host "Falling back to docker manifest inspect..."
+
+            # Fallback: Use docker manifest inspect
+            return Get-ImageDigestViaDocker -Repository $repository -Tag $Tag
+        }
+    } else {
+        Write-Warning "Invalid repository format: $repository"
+        return $null
+    }
+}
+
+# Fallback function to get image digest using docker manifest inspect
+function Get-ImageDigestViaDocker {
+    param(
+        [Parameter(Mandatory=$true)]
+        [string]$Repository,
+
+        [Parameter(Mandatory=$true)]
+        [string]$Tag
+    )
+
+    try {
+        $imageRef = "${Repository}:${Tag}"
+        Write-Host "Using docker manifest inspect for: $imageRef"
+
+        $output = & docker manifest inspect $imageRef --verbose 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            Write-Warning "docker manifest inspect failed: $output"
+            return $null
+        }
+
+        # Parse the JSON output to get the digest
+        $manifest = $output | ConvertFrom-Json
+        if ($manifest.Descriptor -and $manifest.Descriptor.digest) {
+            $digest = $manifest.Descriptor.digest
+            Write-Host "Found digest via docker: $digest"
+            return $digest
+        }
+
+        Write-Warning "Could not parse digest from docker manifest output"
+        return $null
+    } catch {
+        Write-Warning "Error getting digest via docker: $($_.Exception.Message)"
+        return $null
+    }
+}
+
+# Main orchestrator function to find the best Cirrus Labs base image
+function Find-BestCirrusLabsImage {
+    param(
+        [Parameter(Mandatory=$true)]
+        [string]$MacOSVersion,
+
+        [string]$XcodeVersionRange,        # e.g., "[16.0,17.0)" or "[26.2,)"
+        [string]$XcodeRecommendedVersion,  # e.g., "16.2" or "26.2"
+        [switch]$IncludeDigest,
+        [switch]$PreferHighest             # Prefer highest compatible instead of recommended
+    )
+
+    Write-Host ""
+    Write-Host "Finding best Cirrus Labs image for macOS $MacOSVersion"
+    Write-Host "  Xcode/SDK version range: $XcodeVersionRange"
+    Write-Host "  Xcode/SDK recommended: $XcodeRecommendedVersion"
+
+    # Get the version mapping for this macOS version
+    $mapping = Get-CirrusLabsXcodeMapping -MacOSVersion $MacOSVersion
+    if (-not $mapping) {
+        throw "Unknown macOS version: $MacOSVersion"
+    }
+
+    # Detect versioning scheme: SDK versions (26.x) or Xcode versions (16.x)
+    # If recommended version starts with the internal macOS version (26 for Tahoe), use direct comparison
+    $useDirectComparison = $false
+    if ($XcodeRecommendedVersion) {
+        $recommendedMajor = [int]($XcodeRecommendedVersion -split '\.')[0]
+        if ($recommendedMajor -eq $mapping.InternalVersion) {
+            $useDirectComparison = $true
+            Write-Host "  Detected SDK versioning scheme (26.x) - using direct tag comparison"
+        } else {
+            Write-Host "  Detected Xcode versioning scheme (16.x) - using version mapping"
+        }
+    }
+
+    # Parse the version range
+    $parsedRange = $null
+    if ($XcodeVersionRange) {
+        $parsedRange = Parse-NuGetVersionRange -VersionRange $XcodeVersionRange
+    }
+
+    # Get available tags from GHCR
+    $availableTags = Get-CirrusLabsAvailableTags -MacOSVersion $MacOSVersion
+    if ($availableTags.Count -eq 0) {
+        throw "No Cirrus Labs images found for macOS $MacOSVersion"
+    }
+
+    # Build list of compatible versions
+    $compatibleImages = @()
+    foreach ($tag in $availableTags) {
+        # Determine which version to use for comparison
+        if ($useDirectComparison) {
+            # SDK versioning: tag IS the version (26.2 = 26.2)
+            $comparisonVersion = $tag
+            $xcodeVersion = Convert-CirrusTagToXcodeVersion -Tag $tag -Mapping $mapping
+        } else {
+            # Xcode versioning: convert tag to Xcode version (26.2 -> 16.2)
+            $xcodeVersion = Convert-CirrusTagToXcodeVersion -Tag $tag -Mapping $mapping
+            $comparisonVersion = $xcodeVersion
+        }
+
+        # Parse version for comparison (handle single-component versions like "26")
+        try {
+            # Add .0 suffix if version has no minor component
+            $versionToParse = if ($comparisonVersion -notmatch '\.') { "$comparisonVersion.0" } else { $comparisonVersion }
+            $comparisonVersionObj = [Version]$versionToParse
+        } catch {
+            Write-Host "  Skipping tag '$tag' - cannot parse version '$comparisonVersion'"
+            continue
+        }
+
+        # Check if within range (if range specified)
+        $isCompatible = $true
+        if ($parsedRange) {
+            $isCompatible = Test-VersionInRange -Version $comparisonVersionObj -VersionRange $parsedRange
+        }
+
+        if ($isCompatible) {
+            # Check if this is the recommended version
+            $isRecommended = $false
+            if ($useDirectComparison) {
+                # Compare tag directly with recommended
+                $isRecommended = ($tag -eq $XcodeRecommendedVersion) -or
+                                ($tag -eq "$XcodeRecommendedVersion.0") -or
+                                ("$tag.0" -eq $XcodeRecommendedVersion)
+            } else {
+                # Compare Xcode version with recommended
+                $isRecommended = ($xcodeVersion -eq $XcodeRecommendedVersion) -or
+                                ($xcodeVersion -eq "$XcodeRecommendedVersion.0") -or
+                                ("$xcodeVersion.0" -eq $XcodeRecommendedVersion)
+            }
+
+            $compatibleImages += @{
+                Tag = $tag
+                XcodeVersion = $xcodeVersion
+                ComparisonVersion = $comparisonVersion
+                ComparisonVersionObj = $comparisonVersionObj
+                IsRecommended = $isRecommended
+            }
+            Write-Host "  Compatible: tag '$tag' -> Xcode $xcodeVersion$(if ($isRecommended) { ' (RECOMMENDED)' })"
+        }
+    }
+
+    if ($compatibleImages.Count -eq 0) {
+        throw "No compatible Cirrus Labs images found for version range $XcodeVersionRange"
+    }
+
+    # Select the best image
+    $selectedImage = $null
+
+    if (-not $PreferHighest) {
+        # First, try to find the recommended version
+        $selectedImage = $compatibleImages | Where-Object { $_.IsRecommended } | Select-Object -First 1
+    }
+
+    if (-not $selectedImage) {
+        # Fall back to highest compatible version
+        $selectedImage = $compatibleImages | Sort-Object { $_.ComparisonVersionObj } -Descending | Select-Object -First 1
+    }
+
+    Write-Host ""
+    Write-Host "Selected: tag '$($selectedImage.Tag)' -> Xcode $($selectedImage.XcodeVersion)"
+
+    # Build result
+    $result = @{
+        Tag = $selectedImage.Tag
+        XcodeVersion = $selectedImage.XcodeVersion
+        IsRecommended = $selectedImage.IsRecommended
+        IsCompatible = $true
+        BaseImageUrl = "ghcr.io/cirruslabs/macos-$MacOSVersion-xcode:$($selectedImage.Tag)"
+        MacOSVersion = $MacOSVersion
+    }
+
+    # Get digest if requested
+    if ($IncludeDigest) {
+        $digest = Get-CirrusLabsImageDigest -MacOSVersion $MacOSVersion -Tag $selectedImage.Tag
+        if ($digest) {
+            $result.Digest = $digest
+            $result.PinnedImageUrl = "ghcr.io/cirruslabs/macos-$MacOSVersion-xcode@$digest"
+        } else {
+            Write-Warning "Could not retrieve digest for tag '$($selectedImage.Tag)'"
+        }
+    }
+
+    return $result
+}
+
 # Function to get the latest version of an npm package
 function Get-LatestNpmPackageVersion {
     param (

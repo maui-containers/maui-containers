@@ -162,13 +162,55 @@ if ($MacOSVersion) {
 
 # Auto-resolve Xcode versions if not explicitly specified
 if (-not $PSBoundParameters.ContainsKey('BaseXcodeVersion') -and -not $BaseXcodeVersion) {
-    # Use Xcode version from .NET channel info if available
-    if ($dotnetInfo -and $dotnetInfo.BaseXcodeVersion) {
-        $BaseXcodeVersion = $dotnetInfo.BaseXcodeVersion
-    } elseif ($macOSInfo -and $macOSInfo.RecommendedXcodeVersion) {
-        $BaseXcodeVersion = $macOSInfo.RecommendedXcodeVersion
-    } else {
-        throw 'Base Xcode version is required when no platform matrix recommendation is available.'
+    # Try dynamic resolution from workload requirements first
+    $dynamicResolutionSucceeded = $false
+
+    if ($DotnetChannel) {
+        try {
+            Write-Host "Attempting dynamic Xcode version resolution from workload requirements..."
+
+            # Get iOS workload requirements
+            $workloadInfo = Get-WorkloadInfo -DotnetVersion $DotnetChannel -IncludeiOS -DockerPlatform "osx-arm64"
+
+            if ($workloadInfo -and $workloadInfo.Workloads -and $workloadInfo.Workloads.ContainsKey("Microsoft.NET.Sdk.iOS")) {
+                $iosDetails = $workloadInfo.Workloads["Microsoft.NET.Sdk.iOS"].Details
+
+                if ($iosDetails -and ($iosDetails.XcodeVersionRange -or $iosDetails.XcodeRecommendedVersion)) {
+                    # Find best matching Cirrus Labs image
+                    $baseImageInfo = Find-BestCirrusLabsImage `
+                        -MacOSVersion $MacOSVersion `
+                        -XcodeVersionRange $iosDetails.XcodeVersionRange `
+                        -XcodeRecommendedVersion $iosDetails.XcodeRecommendedVersion `
+                        -IncludeDigest
+
+                    if ($baseImageInfo -and $baseImageInfo.Digest) {
+                        # Use digest for pinning
+                        $BaseXcodeVersion = "@$($baseImageInfo.Digest)"
+                        $dynamicResolutionSucceeded = $true
+                        Write-Host "Dynamic resolution succeeded:"
+                        Write-Host "  Xcode version: $($baseImageInfo.XcodeVersion)"
+                        Write-Host "  Cirrus tag: $($baseImageInfo.Tag)"
+                        Write-Host "  Using digest: $($baseImageInfo.Digest)"
+                    }
+                }
+            }
+        } catch {
+            Write-Warning "Dynamic Xcode resolution failed: $($_.Exception.Message)"
+            Write-Warning "Falling back to static configuration..."
+        }
+    }
+
+    # Fall back to static configuration from platform-matrix.json
+    if (-not $dynamicResolutionSucceeded) {
+        if ($dotnetInfo -and $dotnetInfo.BaseXcodeVersion) {
+            $BaseXcodeVersion = $dotnetInfo.BaseXcodeVersion
+            Write-Host "Using static BaseXcodeVersion from platform-matrix.json: $BaseXcodeVersion"
+        } elseif ($macOSInfo -and $macOSInfo.RecommendedXcodeVersion) {
+            $BaseXcodeVersion = $macOSInfo.RecommendedXcodeVersion
+            Write-Host "Using RecommendedXcodeVersion from platform-matrix.json: $BaseXcodeVersion"
+        } else {
+            throw 'Base Xcode version is required when no platform matrix recommendation is available.'
+        }
     }
 }
 

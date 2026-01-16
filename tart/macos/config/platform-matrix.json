@@ -3,7 +3,7 @@
         "tahoe": {
             "FullName": "macOS Tahoe 16",
             "MinXcodeVersion": "26.1",
-            "RecommendedXcodeVersion": "26.1.1"
+            "RecommendedXcodeVersion": "26.2"
         }
     },
     "DotnetChannels": {
@@ -11,7 +11,7 @@
             "Channel": "9.0",
             "LTS": false,
             "MacOSVersion": "tahoe",
-            "BaseXcodeVersion": "26.1.1",
+            "BaseXcodeVersion": "26.2",
             "AdditionalXcodeVersions": [],
             "MinMacOSVersion": "tahoe",
             "SupportedWorkloads": [
@@ -27,7 +27,7 @@
             "Channel": "10.0",
             "LTS": false,
             "MacOSVersion": "tahoe",
-            "BaseXcodeVersion": "26.1.1",
+            "BaseXcodeVersion": "26.2",
             "AdditionalXcodeVersions": [],
             "MinMacOSVersion": "tahoe",
             "SupportedWorkloads": [

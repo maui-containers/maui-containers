@@ -270,6 +270,11 @@ try {
     $xcodeVersionRange = ""
     $xcodeRecommendedVersion = ""
     $xcodeMajorVersion = ""
+    $cirrusBaseTag = ""
+    $cirrusBaseDigest = ""
+    $cirrusXcodeVersion = ""
+    $cirrusBaseImageUrl = ""
+    $cirrusPinnedImageUrl = ""
     $detailedWorkloadInfo = $null
     
     # Get comprehensive workload information
@@ -337,6 +342,34 @@ try {
             Write-HostWithPrefix "Xcode version range: $xcodeVersionRange"
             Write-HostWithPrefix "Xcode recommended version: $xcodeRecommendedVersion"
             Write-HostWithPrefix "Xcode major version: $xcodeMajorVersion"
+
+            # Resolve best matching Cirrus Labs base image for Tart VMs
+            if ($xcodeVersionRange -or $xcodeRecommendedVersion) {
+                try {
+                    Write-HostWithPrefix "Resolving best Cirrus Labs base image for macOS Tahoe..."
+                    $cirrusBaseImageInfo = Find-BestCirrusLabsImage `
+                        -MacOSVersion "tahoe" `
+                        -XcodeVersionRange $xcodeVersionRange `
+                        -XcodeRecommendedVersion $xcodeRecommendedVersion `
+                        -IncludeDigest
+
+                    if ($cirrusBaseImageInfo) {
+                        $cirrusBaseTag = $cirrusBaseImageInfo.Tag
+                        $cirrusBaseDigest = $cirrusBaseImageInfo.Digest
+                        $cirrusXcodeVersion = $cirrusBaseImageInfo.XcodeVersion
+                        $cirrusBaseImageUrl = $cirrusBaseImageInfo.BaseImageUrl
+                        $cirrusPinnedImageUrl = $cirrusBaseImageInfo.PinnedImageUrl
+
+                        Write-HostWithPrefix "Cirrus Labs base image resolved:"
+                        Write-HostWithPrefix "  Tag: $cirrusBaseTag"
+                        Write-HostWithPrefix "  Xcode version: $cirrusXcodeVersion"
+                        Write-HostWithPrefix "  Digest: $cirrusBaseDigest"
+                        Write-HostWithPrefix "  Pinned URL: $cirrusPinnedImageUrl"
+                    }
+                } catch {
+                    Write-HostWithPrefix "Warning: Failed to resolve Cirrus Labs base image - $($_.Exception.Message)"
+                }
+            }
         } else {
             Write-HostWithPrefix "Warning: iOS workload details were not available for Xcode information"
         }
@@ -423,6 +456,11 @@ try {
         XcodeVersionRange = $xcodeVersionRange
         XcodeRecommendedVersion = $xcodeRecommendedVersion
         XcodeMajorVersion = $xcodeMajorVersion
+        CirrusBaseTag = $cirrusBaseTag
+        CirrusBaseDigest = $cirrusBaseDigest
+        CirrusXcodeVersion = $cirrusXcodeVersion
+        CirrusBaseImageUrl = $cirrusBaseImageUrl
+        CirrusPinnedImageUrl = $cirrusPinnedImageUrl
         ErrorMessage = $errorMessage
         LinuxDockerRepository = $LinuxDockerRepository
         WindowsDockerRepository = $WindowsDockerRepository
@@ -446,7 +484,12 @@ try {
         Write-GitHubOutput "xcode-version-range" $xcodeVersionRange
         Write-GitHubOutput "xcode-recommended-version" $xcodeRecommendedVersion
         Write-GitHubOutput "xcode-major-version" $xcodeMajorVersion
-        
+        Write-GitHubOutput "cirrus-base-tag" $cirrusBaseTag
+        Write-GitHubOutput "cirrus-base-digest" $cirrusBaseDigest
+        Write-GitHubOutput "cirrus-xcode-version" $cirrusXcodeVersion
+        Write-GitHubOutput "cirrus-base-image-url" $cirrusBaseImageUrl
+        Write-GitHubOutput "cirrus-pinned-image-url" $cirrusPinnedImageUrl
+
         Write-HostWithPrefix "GitHub Actions outputs set:"
         Write-HostWithPrefix "  trigger-builds: $($triggerBuilds.ToString().ToLower())"
         Write-HostWithPrefix "  new-version: $($newVersion.ToString().ToLower())"
@@ -462,6 +505,11 @@ try {
         Write-HostWithPrefix "  xcode-version-range: $xcodeVersionRange"
         Write-HostWithPrefix "  xcode-recommended-version: $xcodeRecommendedVersion"
         Write-HostWithPrefix "  xcode-major-version: $xcodeMajorVersion"
+        Write-HostWithPrefix "  cirrus-base-tag: $cirrusBaseTag"
+        Write-HostWithPrefix "  cirrus-base-digest: $cirrusBaseDigest"
+        Write-HostWithPrefix "  cirrus-xcode-version: $cirrusXcodeVersion"
+        Write-HostWithPrefix "  cirrus-base-image-url: $cirrusBaseImageUrl"
+        Write-HostWithPrefix "  cirrus-pinned-image-url: $cirrusPinnedImageUrl"
     } else {
         return $result
     }
@@ -494,13 +542,18 @@ try {
         XcodeVersionRange = $xcodeVersionRange
         XcodeRecommendedVersion = $xcodeRecommendedVersion
         XcodeMajorVersion = $xcodeMajorVersion
+        CirrusBaseTag = $cirrusBaseTag
+        CirrusBaseDigest = $cirrusBaseDigest
+        CirrusXcodeVersion = $cirrusXcodeVersion
+        CirrusBaseImageUrl = $cirrusBaseImageUrl
+        CirrusPinnedImageUrl = $cirrusPinnedImageUrl
         ErrorMessage = $_.Exception.Message
         LinuxDockerRepository = $LinuxDockerRepository
         WindowsDockerRepository = $WindowsDockerRepository
         TestDockerRepository = $TestDockerRepository
         DotnetVersion = $DotnetVersion
     }
-    
+
     if ($OutputFormat -eq "github-actions") {
         Write-GitHubOutput "trigger-builds" "true"
         Write-GitHubOutput "new-version" "true"
@@ -512,6 +565,11 @@ try {
         Write-GitHubOutput "xcode-version-range" $xcodeVersionRange
         Write-GitHubOutput "xcode-recommended-version" $xcodeRecommendedVersion
         Write-GitHubOutput "xcode-major-version" $xcodeMajorVersion
+        Write-GitHubOutput "cirrus-base-tag" $cirrusBaseTag
+        Write-GitHubOutput "cirrus-base-digest" $cirrusBaseDigest
+        Write-GitHubOutput "cirrus-xcode-version" $cirrusXcodeVersion
+        Write-GitHubOutput "cirrus-base-image-url" $cirrusBaseImageUrl
+        Write-GitHubOutput "cirrus-pinned-image-url" $cirrusPinnedImageUrl
     } else {
         return $result
     }
