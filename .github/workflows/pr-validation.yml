@@ -219,8 +219,8 @@ jobs:
     if: |
       needs.validate-workloads.result == 'success' &&
       (needs.detect-changes.outputs.common == 'true' ||
-       (matrix.platform == 'linux' && needs.detect-changes.outputs.docker-linux == 'true') ||
-       (matrix.platform == 'windows' && needs.detect-changes.outputs.docker-windows == 'true'))
+       needs.detect-changes.outputs.docker-linux == 'true' ||
+       needs.detect-changes.outputs.docker-windows == 'true')
     strategy:
       matrix: ${{ fromJson(needs.validate-workloads.outputs.matrix) }}
       fail-fast: false
