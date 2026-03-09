@@ -40,7 +40,7 @@ variable "workload_set_version" {
 variable "base_xcode_version" {
   type        = string
   description = "Base Xcode version from upstream image (use @sha256:... for pinning to specific digest)"
-  default     = "@sha256:1f7b38002dcfc2927a2e33a405a44867e3d140d92fa295f9e89c018edfe4214a"
+  default     = "@sha256:39980f3a654be50fab35d8ead868b25b7b5c52adb59ec2fca23073c714cac9c6"
 }
 
 variable "additional_xcode_versions" {
