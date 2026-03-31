@@ -439,15 +439,17 @@ function Push-TartImage {
     }
 
     # Re-authenticate to registry before pushing.
-    # The macOS Keychain may lock during long Packer builds, causing tart push
-    # to fail with errSecInteractionNotAllowed (-25308). Re-running tart login
-    # right before push ensures fresh, accessible credentials.
+    # The macOS Keychain item ACL requires a confirmation dialog by default,
+    # which fails in CI with errSecInteractionNotAllowed (-25308).
+    # We unlock the keychain, re-login, then update the partition list to allow
+    # non-interactive access so tart push can read the stored credentials.
+    $keychainPath = "$HOME/Library/Keychains/login.keychain-db"
     $registryHost = ($Registry -split '/')[0]
     if ($env:TART_REGISTRY_TOKEN) {
         Write-Host "Re-authenticating to $registryHost before push..."
         if ($env:CI_KEYCHAIN_PASSWORD) {
-            & security unlock-keychain -p $env:CI_KEYCHAIN_PASSWORD ~/Library/Keychains/login.keychain-db 2>&1 | Out-Null
-            & security set-keychain-settings ~/Library/Keychains/login.keychain-db 2>&1 | Out-Null
+            & security unlock-keychain -p $env:CI_KEYCHAIN_PASSWORD $keychainPath 2>&1 | Out-Null
+            & security set-keychain-settings $keychainPath 2>&1 | Out-Null
         }
         $loginUsername = if ($env:TART_REGISTRY_USERNAME) { $env:TART_REGISTRY_USERNAME } else { "token" }
         $env:TART_REGISTRY_TOKEN | & tart login $registryHost --username $loginUsername --password-stdin
@@ -455,6 +457,10 @@ function Push-TartImage {
             Write-Warning "Failed to re-authenticate to $registryHost - push may fail"
         } else {
             Write-Host "Re-authentication successful"
+        }
+        # Update keychain partition list to allow non-interactive access
+        if ($env:CI_KEYCHAIN_PASSWORD) {
+            & security set-key-partition-list -S "apple-tool:,apple:" -s -k $env:CI_KEYCHAIN_PASSWORD $keychainPath 2>&1 | Out-Null
         }
     }
 
