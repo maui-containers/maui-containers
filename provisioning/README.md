@@ -6,7 +6,7 @@ The `provision.ps1` script bootstraps a developer workstation with the same tool
 - macOS 13 or newer with administrative privileges for Homebrew cask installs
 - [Homebrew](https://brew.sh) installed and available on the `PATH`
 - Xcode command line tools (`xcode-select --install`) for iOS builds
-- PowerShell 7 (`brew install --cask powershell`) to run the script
+- PowerShell 7 (`brew install powershell/tap/powershell`) to run the script
 
 ## Usage
 ```powershell
