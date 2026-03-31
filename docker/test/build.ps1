@@ -163,6 +163,10 @@ $commonArgs = @(
     "--build-arg", "APPIUM_UIAUTOMATOR2_DRIVER_VERSION=$AppiumUIAutomator2DriverVersion",
     "--build-arg", "JDK_MAJOR_VERSION=$androidJdkMajorVersion",
     "--build-arg", "DOTNET_VERSION=$DotnetVersion",
+    # Dynamic OCI labels with resolved build-time values
+    "--label", "org.opencontainers.image.version=android$AndroidSdkApiLevel-$dotnetCommandWorkloadSetVersion",
+    "--label", "org.opencontainers.image.created=$(Get-Date -Format 'o')",
+    "--label", "org.opencontainers.image.revision=$BuildSha",
     "-f", "Dockerfile",
     "."
 )
@@ -196,6 +200,23 @@ try {
     if ($LASTEXITCODE -ne 0) {
         Write-Error "Docker build failed with exit code $LASTEXITCODE"
         exit $LASTEXITCODE
+    }
+
+    # Output version information for CI build summaries
+    if ($env:GITHUB_OUTPUT) {
+        Write-Host "Writing version info to GITHUB_OUTPUT for build summary..."
+        "dotnet_version=$DotnetVersion" >> $env:GITHUB_OUTPUT
+        "workload_set_version=$dotnetCommandWorkloadSetVersion" >> $env:GITHUB_OUTPUT
+        "android_api_level=$AndroidSdkApiLevel" >> $env:GITHUB_OUTPUT
+        "android_build_tools=$androidBuildToolsVersion" >> $env:GITHUB_OUTPUT
+        "android_cmdline_tools=$androidCmdLineToolsVersion" >> $env:GITHUB_OUTPUT
+        "android_avd_device=$androidAvdDeviceType" >> $env:GITHUB_OUTPUT
+        "android_system_image=$androidAvdSystemImageType" >> $env:GITHUB_OUTPUT
+        "jdk_version=$androidJdkMajorVersion" >> $env:GITHUB_OUTPUT
+        "appium_version=$AppiumVersion" >> $env:GITHUB_OUTPUT
+        "appium_uiautomator2_version=$AppiumUIAutomator2DriverVersion" >> $env:GITHUB_OUTPUT
+        "docker_platform=$DockerPlatform" >> $env:GITHUB_OUTPUT
+        "image_tags=$($tags -join '|')" >> $env:GITHUB_OUTPUT
     }
 } finally {
     # Always return to original directory

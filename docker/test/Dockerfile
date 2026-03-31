@@ -45,6 +45,23 @@ ENV APPIUM_VERSION=${APPIUM_VERSION}
 ENV APPIUM_UIAUTOMATOR2_DRIVER_VERSION=${APPIUM_UIAUTOMATOR2_DRIVER_VERSION}
 ENV ANDROID_SDK_AVD_HOST_ABI=${ANDROID_SDK_AVD_HOST_ABI}
 
+# OCI Image labels for registry metadata and discoverability
+LABEL org.opencontainers.image.title="MAUI Android Emulator Test Container" \
+      org.opencontainers.image.description="Android emulator with Appium for .NET MAUI UI testing — API level ${ANDROID_SDK_API_LEVEL}" \
+      org.opencontainers.image.vendor="MAUI Containers" \
+      org.opencontainers.image.source="https://github.com/maui-containers/maui-containers" \
+      org.opencontainers.image.documentation="https://github.com/maui-containers/maui-containers/blob/main/README.md" \
+      org.opencontainers.image.url="https://github.com/maui-containers/maui-containers" \
+      org.opencontainers.image.licenses="MIT" \
+      dev.maui-containers.android-api-level="${ANDROID_SDK_API_LEVEL}" \
+      dev.maui-containers.android-build-tools="${ANDROID_SDK_BUILD_TOOLS_VERSION}" \
+      dev.maui-containers.android-cmdline-tools="${ANDROID_SDK_CMDLINE_TOOLS_VERSION}" \
+      dev.maui-containers.android-avd-device="${ANDROID_SDK_AVD_DEVICE_TYPE}" \
+      dev.maui-containers.android-system-image="${ANDROID_SDK_AVD_SYSTEM_IMAGE_TYPE}" \
+      dev.maui-containers.jdk-version="${JDK_MAJOR_VERSION}" \
+      dev.maui-containers.appium-version="${APPIUM_VERSION}" \
+      dev.maui-containers.appium-uiautomator2="${APPIUM_UIAUTOMATOR2_DRIVER_VERSION}"
+
 ENV INIT_PWSH_SCRIPT="/config/init.ps1"
 ENV INIT_BASH_SCRIPT="/config/init.sh"
 
