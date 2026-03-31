@@ -438,6 +438,26 @@ function Push-TartImage {
         return
     }
 
+    # Re-authenticate to registry before pushing.
+    # The macOS Keychain may lock during long Packer builds, causing tart push
+    # to fail with errSecInteractionNotAllowed (-25308). Re-running tart login
+    # right before push ensures fresh, accessible credentials.
+    $registryHost = ($Registry -split '/')[0]
+    if ($env:TART_REGISTRY_TOKEN) {
+        Write-Host "Re-authenticating to $registryHost before push..."
+        if ($env:CI_KEYCHAIN_PASSWORD) {
+            & security unlock-keychain -p $env:CI_KEYCHAIN_PASSWORD ~/Library/Keychains/login.keychain-db 2>&1 | Out-Null
+            & security set-keychain-settings ~/Library/Keychains/login.keychain-db 2>&1 | Out-Null
+        }
+        $loginUsername = if ($env:TART_REGISTRY_USERNAME) { $env:TART_REGISTRY_USERNAME } else { "token" }
+        $env:TART_REGISTRY_TOKEN | & tart login $registryHost --username $loginUsername --password-stdin
+        if ($LASTEXITCODE -ne 0) {
+            Write-Warning "Failed to re-authenticate to $registryHost - push may fail"
+        } else {
+            Write-Host "Re-authentication successful"
+        }
+    }
+
     Write-Host "Pushing image to registry with multiple tags..."
     $pushCount = 0
     foreach ($tag in $tags) {
