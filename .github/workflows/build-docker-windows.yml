@@ -57,6 +57,7 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
 
     - name: 🔨 Build Docker Image
+      id: build
       shell: pwsh
       run: |
         # Build arguments
@@ -78,3 +79,58 @@ jobs:
         }
 
         ./docker/build.ps1 @buildArgs
+
+    - name: 📋 Generate Build Summary
+      if: always()
+      shell: pwsh
+      run: |
+        $summary = @"
+        ## 🪟 Windows Docker Build — .NET ${{ steps.build.outputs.dotnet_version || matrix.DOTNET_VERSION }}
+
+        ### Installed Software Versions
+
+        | Component | Version |
+        |-----------|---------|
+        | .NET SDK | ${{ steps.build.outputs.dotnet_version || matrix.DOTNET_VERSION }} |
+        | Workload Set | ${{ steps.build.outputs.workload_set_version || 'auto-detected' }} |
+        | Android SDK API Level | ${{ steps.build.outputs.android_api_level || '—' }} |
+        | Android Build Tools | ${{ steps.build.outputs.android_build_tools || '—' }} |
+        | Android Cmdline Tools | ${{ steps.build.outputs.android_cmdline_tools || '—' }} |
+        | JDK | ${{ steps.build.outputs.jdk_version || '—' }} |
+        | GitHub Actions Runner | ${{ steps.build.outputs.github_actions_runner || '—' }} |
+        | Platform | ${{ steps.build.outputs.docker_platform || 'windows/amd64' }} |
+        | Build SHA | ``${{ steps.vars.outputs.build_sha }}`` |
+
+        "@
+        $summary | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
+
+        # Image tags
+        $tags = "${{ steps.build.outputs.image_tags }}"
+        if ($tags) {
+          "### Image Tags`n" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
+          foreach ($tag in $tags.Split('|')) {
+            if ($tag) {
+              "- ``$tag``" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
+            }
+          }
+
+          $firstTag = $tags.Split('|')[0]
+          @"
+
+        ### Quick Start
+
+        ``````bash
+        docker pull $firstTag
+        ``````
+        "@ | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
+        }
+
+        @"
+
+        ### SBOM
+
+        Software Bill of Materials is embedded in the image at:
+        - ``C:/ProgramData/installed-software.json`` (JSON)
+        - ``C:/ProgramData/installed-software.spdx.json`` (SPDX 2.3)
+        - ``C:/ProgramData/installed-software.cdx.json`` (CycloneDX 1.6)
+        "@ | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append

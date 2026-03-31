@@ -57,6 +57,7 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
 
     - name: 🔨 Build Docker Image
+      id: build
       shell: pwsh
       run: |
         # Build arguments
@@ -76,3 +77,53 @@ jobs:
         }
 
         ./docker/build.ps1 @buildArgs
+
+    - name: 📋 Generate Build Summary
+      if: always()
+      shell: bash
+      run: |
+        echo "## 🐧 Linux Docker Build — .NET ${{ steps.build.outputs.dotnet_version || matrix.DOTNET_VERSION }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Installed Software Versions" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| Component | Version |" >> $GITHUB_STEP_SUMMARY
+        echo "|-----------|---------|" >> $GITHUB_STEP_SUMMARY
+        echo "| .NET SDK | ${{ steps.build.outputs.dotnet_version || matrix.DOTNET_VERSION }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Workload Set | ${{ steps.build.outputs.workload_set_version || 'auto-detected' }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Android SDK API Level | ${{ steps.build.outputs.android_api_level || '—' }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Android Build Tools | ${{ steps.build.outputs.android_build_tools || '—' }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Android Cmdline Tools | ${{ steps.build.outputs.android_cmdline_tools || '—' }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| JDK | ${{ steps.build.outputs.jdk_version || '—' }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| GitHub Actions Runner | ${{ steps.build.outputs.github_actions_runner || '—' }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Platform | ${{ steps.build.outputs.docker_platform || 'linux/amd64' }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Build SHA | \`${{ steps.vars.outputs.build_sha }}\` |" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+
+        # Image tags
+        TAGS="${{ steps.build.outputs.image_tags }}"
+        if [ -n "$TAGS" ]; then
+          echo "### Image Tags" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "$TAGS" | tr '|' '\n' | while read -r tag; do
+            if [ -n "$tag" ]; then
+              echo "- \`$tag\`" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Pull command using first tag
+          FIRST_TAG=$(echo "$TAGS" | cut -d'|' -f1)
+          echo "### Quick Start" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo '```bash' >> $GITHUB_STEP_SUMMARY
+          echo "docker pull $FIRST_TAG" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+        fi
+        echo "" >> $GITHUB_STEP_SUMMARY
+
+        echo "### SBOM" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "Software Bill of Materials is embedded in the image at:" >> $GITHUB_STEP_SUMMARY
+        echo "- \`/usr/local/share/installed-software.json\` (JSON)" >> $GITHUB_STEP_SUMMARY
+        echo "- \`/usr/local/share/installed-software.spdx.json\` (SPDX 2.3)" >> $GITHUB_STEP_SUMMARY
+        echo "- \`/usr/local/share/installed-software.cdx.json\` (CycloneDX 1.6)" >> $GITHUB_STEP_SUMMARY

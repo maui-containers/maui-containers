@@ -175,6 +175,7 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
 
     - name: 🔨 Build Android ${{ matrix.android_api_level }} Emulator
+      id: build
       shell: pwsh
       working-directory: ./docker/test/
       run: |
@@ -213,5 +214,51 @@ jobs:
         }
 
         ./build.ps1 @buildArgs
+
+    - name: 📋 Generate Build Summary
+      if: always()
+      shell: bash
+      run: |
+        BUILD_SHA=$(git rev-parse --short=8 HEAD)
+
+        echo "## 📱 Android ${{ matrix.android_api_level }} Emulator — .NET ${{ steps.build.outputs.dotnet_version || matrix.dotnet_version }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Installed Software Versions" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| Component | Version |" >> $GITHUB_STEP_SUMMARY
+        echo "|-----------|---------|" >> $GITHUB_STEP_SUMMARY
+        echo "| .NET Runtime | ${{ steps.build.outputs.dotnet_version || matrix.dotnet_version }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Workload Set | ${{ steps.build.outputs.workload_set_version || 'auto-detected' }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Android SDK API Level | ${{ steps.build.outputs.android_api_level || matrix.android_api_level }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Android Build Tools | ${{ steps.build.outputs.android_build_tools || '—' }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Android Cmdline Tools | ${{ steps.build.outputs.android_cmdline_tools || '—' }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| AVD Device | ${{ steps.build.outputs.android_avd_device || '—' }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| System Image | ${{ steps.build.outputs.android_system_image || '—' }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| JDK | ${{ steps.build.outputs.jdk_version || '—' }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Appium | ${{ steps.build.outputs.appium_version || '—' }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| UIAutomator2 Driver | ${{ steps.build.outputs.appium_uiautomator2_version || '—' }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Build SHA | \`${BUILD_SHA}\` |" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+
+        # Image tags
+        TAGS="${{ steps.build.outputs.image_tags }}"
+        if [ -n "$TAGS" ]; then
+          echo "### Image Tags" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "$TAGS" | tr '|' '\n' | while read -r tag; do
+            if [ -n "$tag" ]; then
+              echo "- \`$tag\`" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          FIRST_TAG=$(echo "$TAGS" | cut -d'|' -f1)
+          echo "### Quick Start" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo '```bash' >> $GITHUB_STEP_SUMMARY
+          echo "docker pull $FIRST_TAG" >> $GITHUB_STEP_SUMMARY
+          echo "docker run --device /dev/kvm -p 4723:4723 -p 5554:5554 -p 5555:5555 $FIRST_TAG" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+        fi
 
 

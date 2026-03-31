@@ -22,6 +22,22 @@ ENV DOTNET_VERSION=${DOTNET_VERSION}
 ENV DOTNET_WORKLOADS_VERSION=${DOTNET_WORKLOADS_VERSION}
 ENV GITHUB_ACTIONS_RUNNER_VERSION=${GITHUB_ACTIONS_RUNNER_VERSION}
 
+# OCI Image labels for registry metadata and discoverability
+LABEL org.opencontainers.image.title="MAUI Linux Development Container" \
+      org.opencontainers.image.description=".NET MAUI development environment for Linux with Android SDK, integrated GitHub Actions and Gitea Actions runner support" \
+      org.opencontainers.image.vendor="MAUI Containers" \
+      org.opencontainers.image.source="https://github.com/maui-containers/maui-containers" \
+      org.opencontainers.image.documentation="https://github.com/maui-containers/maui-containers/blob/main/README.md" \
+      org.opencontainers.image.url="https://github.com/maui-containers/maui-containers" \
+      org.opencontainers.image.licenses="MIT" \
+      dev.maui-containers.dotnet-version="${DOTNET_VERSION}" \
+      dev.maui-containers.workload-set-version="${DOTNET_WORKLOADS_VERSION}" \
+      dev.maui-containers.android-api-level="${ANDROID_SDK_API_LEVEL}" \
+      dev.maui-containers.android-build-tools="${ANDROID_SDK_BUILD_TOOLS_VERSION}" \
+      dev.maui-containers.android-cmdline-tools="${ANDROID_SDK_CMDLINE_TOOLS_VERSION}" \
+      dev.maui-containers.jdk-version="${JDK_MAJOR_VERSION}" \
+      dev.maui-containers.github-actions-runner="${GITHUB_ACTIONS_RUNNER_VERSION}"
+
 ENV INIT_PWSH_SCRIPT="/config/init.ps1"
 ENV INIT_BASH_SCRIPT="/config/init.sh"
 

@@ -16,9 +16,16 @@ ensure_required_runtimes() {
     if xcodes runtimes | grep -q "$runtime (Installed)"; then
       echo "Runtime $runtime already installed"
     else
-      echo "Installing runtime $runtime (latest available)..."
-      if ! sudo xcodes runtimes install --latest "$runtime"; then
-        echo "Warning: Failed to install runtime $runtime (may require Apple ID or be unavailable)."
+      echo "Installing latest $runtime runtime..."
+      # Get the latest available version for this runtime platform
+      LATEST_VERSION=$(xcodes runtimes 2>/dev/null | grep "^$runtime" | grep -v "(Installed)" | tail -1 | sed 's/ *$//')
+      if [ -n "$LATEST_VERSION" ]; then
+        echo "Found latest: $LATEST_VERSION"
+        if ! sudo xcodes runtimes install "$LATEST_VERSION"; then
+          echo "Warning: Failed to install runtime $LATEST_VERSION (may require Apple ID or be unavailable)."
+        fi
+      else
+        echo "Warning: Could not determine latest $runtime runtime version."
       fi
     fi
   done

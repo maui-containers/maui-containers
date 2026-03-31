@@ -125,7 +125,11 @@ $buildArgs = @(
     "--build-arg", "ANDROID_SDK_CMDLINE_TOOLS_VERSION=$($androidDetails.CmdLineToolsVersion)",
     "--build-arg", "DOTNET_WORKLOADS_VERSION=$dotnetCommandWorkloadSetVersion",
     "--build-arg", "GITHUB_ACTIONS_RUNNER_VERSION=$githubActionsRunnerVersion",
-    "--platform", $DockerPlatform
+    "--platform", $DockerPlatform,
+    # Dynamic OCI labels with resolved build-time values
+    "--label", "org.opencontainers.image.version=$dotnetCommandWorkloadSetVersion",
+    "--label", "org.opencontainers.image.created=$(Get-Date -Format 'o')",
+    "--label", "org.opencontainers.image.revision=$BuildSha"
 )
 
 # Add all tags
@@ -161,6 +165,20 @@ try {
     }
     
     Write-Host "Docker build completed successfully!"
+    
+    # Output version information for CI build summaries
+    if ($env:GITHUB_OUTPUT) {
+        Write-Host "Writing version info to GITHUB_OUTPUT for build summary..."
+        "dotnet_version=$DotnetVersion" >> $env:GITHUB_OUTPUT
+        "workload_set_version=$dotnetCommandWorkloadSetVersion" >> $env:GITHUB_OUTPUT
+        "android_api_level=$($androidDetails.ApiLevel)" >> $env:GITHUB_OUTPUT
+        "android_build_tools=$($androidDetails.BuildToolsVersion)" >> $env:GITHUB_OUTPUT
+        "android_cmdline_tools=$($androidDetails.CmdLineToolsVersion)" >> $env:GITHUB_OUTPUT
+        "jdk_version=$($androidDetails.JdkMajorVersion)" >> $env:GITHUB_OUTPUT
+        "github_actions_runner=$githubActionsRunnerVersion" >> $env:GITHUB_OUTPUT
+        "docker_platform=$DockerPlatform" >> $env:GITHUB_OUTPUT
+        "image_tags=$($tags -join '|')" >> $env:GITHUB_OUTPUT
+    }
     
     # Push if requested
     if ($Push) {
