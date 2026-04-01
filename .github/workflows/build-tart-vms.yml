@@ -90,31 +90,17 @@ jobs:
         echo "Disk space after cleanup:"
         df -h
 
-    - name: 🔐 Login to GitHub Container Registry
-      if: github.ref == 'refs/heads/main' || inputs.push_to_registry == true
-      run: |
-        echo "Unlocking keychain..."
-        security unlock-keychain -p ${{ secrets.CI_KEYCHAIN_PASSWORD }} ~/Library/Keychains/login.keychain-db
-        # Prevent keychain from auto-locking during long Packer builds
-        security set-keychain-settings ~/Library/Keychains/login.keychain-db
-        echo "Logging in to GitHub via Tart..."
-        echo "${{ secrets.GHCR_TOKEN }}" | tart login ghcr.io --username "${{ github.actor }}" --password-stdin
-        # Allow non-interactive access to keychain items in CI
-        # Without this, tart push gets errSecInteractionNotAllowed (-25308)
-        # because the keychain item ACL requires a confirmation dialog
-        security set-key-partition-list -S apple-tool:,apple: -s -k "${{ secrets.CI_KEYCHAIN_PASSWORD }}" ~/Library/Keychains/login.keychain-db
-        echo "Login successful"
-
     - name: 🔧 Build Tart VM Image
       shell: pwsh
       env:
         # Packer uses this to authenticate GitHub API requests for plugin downloads
         PACKER_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        # Tart registry credentials for re-authentication before push
-        # (macOS Keychain may lock during long Packer builds)
-        TART_REGISTRY_TOKEN: ${{ secrets.GHCR_TOKEN }}
+        # Tart registry credentials via env vars (bypasses macOS Keychain entirely).
+        # Tart 2.32.0 changed its code signing which broke Keychain-based auth in CI.
+        # These env vars are the officially recommended approach for CI:
+        # https://tart.run/quick-start/#registry-authorization
         TART_REGISTRY_USERNAME: ${{ github.actor }}
-        CI_KEYCHAIN_PASSWORD: ${{ secrets.CI_KEYCHAIN_PASSWORD }}
+        TART_REGISTRY_PASSWORD: ${{ secrets.GHCR_TOKEN }}
       run: |
         Write-Host "=== Build Configuration ==="
         Write-Host ".NET Channel: ${{ env.DOTNET_CHANNEL }}"
