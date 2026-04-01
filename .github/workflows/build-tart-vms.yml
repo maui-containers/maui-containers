@@ -99,6 +99,10 @@ jobs:
         security set-keychain-settings ~/Library/Keychains/login.keychain-db
         echo "Logging in to GitHub via Tart..."
         echo "${{ secrets.GHCR_TOKEN }}" | tart login ghcr.io --username "${{ github.actor }}" --password-stdin
+        # Allow non-interactive access to keychain items in CI
+        # Without this, tart push gets errSecInteractionNotAllowed (-25308)
+        # because the keychain item ACL requires a confirmation dialog
+        security set-key-partition-list -S apple-tool:,apple: -s -k "${{ secrets.CI_KEYCHAIN_PASSWORD }}" ~/Library/Keychains/login.keychain-db
         echo "Login successful"
 
     - name: 🔧 Build Tart VM Image
