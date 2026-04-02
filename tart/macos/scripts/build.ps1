@@ -438,32 +438,6 @@ function Push-TartImage {
         return
     }
 
-    # Re-authenticate to registry before pushing.
-    # The macOS Keychain item ACL requires a confirmation dialog by default,
-    # which fails in CI with errSecInteractionNotAllowed (-25308).
-    # We unlock the keychain, re-login, then update the partition list to allow
-    # non-interactive access so tart push can read the stored credentials.
-    $keychainPath = "$HOME/Library/Keychains/login.keychain-db"
-    $registryHost = ($Registry -split '/')[0]
-    if ($env:TART_REGISTRY_TOKEN) {
-        Write-Host "Re-authenticating to $registryHost before push..."
-        if ($env:CI_KEYCHAIN_PASSWORD) {
-            & security unlock-keychain -p $env:CI_KEYCHAIN_PASSWORD $keychainPath 2>&1 | Out-Null
-            & security set-keychain-settings $keychainPath 2>&1 | Out-Null
-        }
-        $loginUsername = if ($env:TART_REGISTRY_USERNAME) { $env:TART_REGISTRY_USERNAME } else { "token" }
-        $env:TART_REGISTRY_TOKEN | & tart login $registryHost --username $loginUsername --password-stdin
-        if ($LASTEXITCODE -ne 0) {
-            Write-Warning "Failed to re-authenticate to $registryHost - push may fail"
-        } else {
-            Write-Host "Re-authentication successful"
-        }
-        # Update keychain partition list to allow non-interactive access
-        if ($env:CI_KEYCHAIN_PASSWORD) {
-            & security set-key-partition-list -S "apple-tool:,apple:" -s -k $env:CI_KEYCHAIN_PASSWORD $keychainPath 2>&1 | Out-Null
-        }
-    }
-
     Write-Host "Pushing image to registry with multiple tags..."
     $pushCount = 0
     foreach ($tag in $tags) {
