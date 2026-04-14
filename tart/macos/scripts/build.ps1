@@ -376,6 +376,7 @@ function Push-TartImage {
     # :{macos}-dotnet{version} (always - this is the "latest" for this .NET version)
     # :{macos}-dotnet{version}-xcode{version} (if Xcode version known)
     # :{macos}-dotnet{version}-xcode{version}-workloads{workloadversion} (if both known)
+    # :{macos}-dotnet{version}-xcode{version}-workloads{band}xx (rolling workload band alias)
     # :{macos}-dotnet{version}-xcode{version}-workloads{workloadversion}-v{sha} (if SHA provided)
     $tags = @()
 
@@ -399,6 +400,8 @@ function Push-TartImage {
         }
     }
 
+    $workloadBandTagVersion = Get-WorkloadBandTag -WorkloadVersion $WorkloadSetVersion
+
     # 1. macOS + .NET version tag (e.g., :tahoe-dotnet10.0) - this is the "latest" for this .NET version
     $baseTag = "$MacOSVersion-dotnet$DotnetChannel"
     $tags += "$Registry/${registryName}:$baseTag"
@@ -413,6 +416,14 @@ function Push-TartImage {
             $fullTag = "$xcodeTag-workloads$WorkloadSetVersion"
             $tags += "$Registry/${registryName}:$fullTag"
 
+            if ($workloadBandTagVersion) {
+                $bandTag = "$xcodeTag-workloads$workloadBandTagVersion"
+                $bandTagRef = "$Registry/${registryName}:$bandTag"
+                if ($tags -notcontains $bandTagRef) {
+                    $tags += $bandTagRef
+                }
+            }
+
             # 4. Add SHA-pinned tag if BuildSha is provided (e.g., :tahoe-dotnet10.0-xcode26.1-workloads10.0.100.1-vabc12345)
             if ($BuildSha) {
                 $shaTag = "$fullTag-v$BuildSha"
@@ -423,6 +434,14 @@ function Push-TartImage {
         # Fallback: If no Xcode version tag but we have workloads, use old format
         $workloadTag = "$MacOSVersion-dotnet$DotnetChannel-workloads$WorkloadSetVersion"
         $tags += "$Registry/${registryName}:$workloadTag"
+
+        if ($workloadBandTagVersion) {
+            $bandTag = "$MacOSVersion-dotnet$DotnetChannel-workloads$workloadBandTagVersion"
+            $bandTagRef = "$Registry/${registryName}:$bandTag"
+            if ($tags -notcontains $bandTagRef) {
+                $tags += $bandTagRef
+            }
+        }
 
         if ($BuildSha) {
             $shaTag = "$workloadTag-v$BuildSha"
@@ -571,6 +590,7 @@ try {
     if ($BaseXcodeVersion -and -not $BaseXcodeVersion.StartsWith("@")) {
         $xcodeVersionTag = $BaseXcodeVersion -replace '[^0-9.]', ''
     }
+    $resolvedWorkloadBandTag = Get-WorkloadBandTag -WorkloadVersion $resolvedWorkloadSetVersion
 
     if (($Push -or $PushOnly) -and $Registry) {
         Write-Host ""
@@ -582,6 +602,9 @@ try {
 
             if ($resolvedWorkloadSetVersion) {
                 Write-Host "  $Registry/${displayRegistryName}:$MacOSVersion-dotnet$DotnetChannel-xcode$xcodeVersionTag-workloads$resolvedWorkloadSetVersion"
+                if ($resolvedWorkloadBandTag) {
+                    Write-Host "  $Registry/${displayRegistryName}:$MacOSVersion-dotnet$DotnetChannel-xcode$xcodeVersionTag-workloads$resolvedWorkloadBandTag"
+                }
                 if ($BuildSha) {
                     Write-Host "  $Registry/${displayRegistryName}:$MacOSVersion-dotnet$DotnetChannel-xcode$xcodeVersionTag-workloads$resolvedWorkloadSetVersion-v$BuildSha"
                 }
@@ -589,6 +612,9 @@ try {
         } elseif ($resolvedWorkloadSetVersion) {
             # Fallback format if no Xcode version
             Write-Host "  $Registry/${displayRegistryName}:$MacOSVersion-dotnet$DotnetChannel-workloads$resolvedWorkloadSetVersion"
+            if ($resolvedWorkloadBandTag) {
+                Write-Host "  $Registry/${displayRegistryName}:$MacOSVersion-dotnet$DotnetChannel-workloads$resolvedWorkloadBandTag"
+            }
             if ($BuildSha) {
                 Write-Host "  $Registry/${displayRegistryName}:$MacOSVersion-dotnet$DotnetChannel-workloads$resolvedWorkloadSetVersion-v$BuildSha"
             }
@@ -610,11 +636,17 @@ try {
 
             if ($xcodeVersionTag -and $resolvedWorkloadSetVersion) {
                 Write-Host "  tart pull $Registry/${displayRegistryName}:$MacOSVersion-dotnet$DotnetChannel-xcode$xcodeVersionTag-workloads$resolvedWorkloadSetVersion"
+                if ($resolvedWorkloadBandTag) {
+                    Write-Host "  tart pull $Registry/${displayRegistryName}:$MacOSVersion-dotnet$DotnetChannel-xcode$xcodeVersionTag-workloads$resolvedWorkloadBandTag"
+                }
                 if ($BuildSha) {
                     Write-Host "  tart pull $Registry/${displayRegistryName}:$MacOSVersion-dotnet$DotnetChannel-xcode$xcodeVersionTag-workloads$resolvedWorkloadSetVersion-v$BuildSha"
                 }
             } elseif ($resolvedWorkloadSetVersion) {
                 Write-Host "  tart pull $Registry/${displayRegistryName}:$MacOSVersion-dotnet$DotnetChannel-workloads$resolvedWorkloadSetVersion"
+                if ($resolvedWorkloadBandTag) {
+                    Write-Host "  tart pull $Registry/${displayRegistryName}:$MacOSVersion-dotnet$DotnetChannel-workloads$resolvedWorkloadBandTag"
+                }
                 if ($BuildSha) {
                     Write-Host "  tart pull $Registry/${displayRegistryName}:$MacOSVersion-dotnet$DotnetChannel-workloads$resolvedWorkloadSetVersion-v$BuildSha"
                 }

@@ -357,6 +357,38 @@ function Convert-ToWorkloadVersion {
     }
 }
 
+# Derive a rolling workload band tag alias from a resolved workload version.
+# Examples:
+#   10.0.201 -> 10.0.2xx
+#   9.0.305  -> 9.0.3xx
+#   10.0.100-rc.1.12345.6 -> 10.0.1xx
+function Get-WorkloadBandTag {
+    param (
+        [string]$WorkloadVersion
+    )
+
+    if ([string]::IsNullOrWhiteSpace($WorkloadVersion)) {
+        return $null
+    }
+
+    if ($WorkloadVersion -notmatch '^(?<major>\d+)\.(?<minor>\d+)\.(?<band>\d{3,})(?:[.+-].*)?$') {
+        Write-Verbose "Could not derive workload band tag from version '$WorkloadVersion'."
+        return $null
+    }
+
+    $majorVersion = $Matches['major']
+    $minorVersion = $Matches['minor']
+    $bandNumber = [int]$Matches['band']
+
+    if ($bandNumber -lt 100) {
+        Write-Verbose "Workload band '$bandNumber' is not in a supported hundreds range."
+        return $null
+    }
+
+    $bandAlias = "$([math]::Floor($bandNumber / 100))xx"
+    return "$majorVersion.$minorVersion.$bandAlias"
+}
+
 # Helper function to convert base version from NuGet to CLI format
 function Convert-BaseVersionToCliFormat {
     param (
