@@ -60,13 +60,14 @@ Images are published under the `maui-containers` organization:
 
 All images use a consistent tag format with platform/OS identifiers and version information:
 
-**Pattern:** `{platform-identifier}-dotnet{X.Y}-workloads{X.Y.Z}[-v{sha}]`
+**Pattern:** `{platform-identifier}-dotnet{X.Y}-workloads{exact-or-band}[-v{sha}]`
 
 **Tag Variants:**
 
 1. **`{platform}-dotnet{X.Y}`** - Latest workload set for this .NET version
 2. **`{platform}-dotnet{X.Y}-workloads{X.Y.Z}`** - Specific workload version
-3. **`{platform}-dotnet{X.Y}-workloads{X.Y.Z}-v{sha}`** - SHA-pinned build (optional)
+3. **`{platform}-dotnet{X.Y}-workloads{X.Y.Nxx}`** - Rolling workload-band tag for minor updates in a hundreds range
+4. **`{platform}-dotnet{X.Y}-workloads{X.Y.Z}-v{sha}`** - SHA-pinned build (optional)
 
 ### Examples by Platform
 
@@ -75,11 +76,13 @@ All images use a consistent tag format with platform/OS identifiers and version 
 # .NET 10.0
 maui-containers/maui-linux:dotnet10.0
 maui-containers/maui-linux:dotnet10.0-workloads10.0.100-rc.2.25024.3
+maui-containers/maui-linux:dotnet10.0-workloads10.0.1xx
 maui-containers/maui-linux:dotnet10.0-workloads10.0.100-rc.2.25024.3-vsha256abc
 
 # .NET 9.0
 maui-containers/maui-linux:dotnet9.0
 maui-containers/maui-linux:dotnet9.0-workloads9.0.305
+maui-containers/maui-linux:dotnet9.0-workloads9.0.3xx
 maui-containers/maui-linux:dotnet9.0-workloads9.0.305-vsha256abc
 ```
 
@@ -101,11 +104,13 @@ maui-containers/maui-windows:dotnet9.0-workloads9.0.305-vsha256abc
 # .NET 10.0
 maui-containers/maui-macos:tahoe-dotnet10.0
 maui-containers/maui-macos:tahoe-dotnet10.0-workloads10.0.100-rc.2.25024.3
+maui-containers/maui-macos:tahoe-dotnet10.0-workloads10.0.1xx
 maui-containers/maui-macos:tahoe-dotnet10.0-workloads10.0.100-rc.2.25024.3-vsha256abc
 
 # .NET 9.0
 maui-containers/maui-macos:tahoe-dotnet9.0
 maui-containers/maui-macos:tahoe-dotnet9.0-workloads9.0.305
+maui-containers/maui-macos:tahoe-dotnet9.0-workloads9.0.3xx
 maui-containers/maui-macos:tahoe-dotnet9.0-workloads9.0.305-vsha256abc
 ```
 
@@ -133,6 +138,7 @@ maui-containers/maui-emulator-linux:android34-dotnet9.0-workloads9.0.305
 
 - **Always includes .NET version** - No ambiguity about which .NET version is installed
 - **Workload versions explicit** - Pin to specific workload sets for reproducible builds
+- **Rolling band tags available** - Follow updates like `10.0.2xx` or `9.0.3xx` without jumping across bands
 - **SHA pinning optional** - For maximum reproducibility when needed
 - **Platform-aware** - macOS includes OS version for Xcode; emulator includes API level
 - **No redundant tags** - Removed ambiguous `:latest` and platform-only tags
@@ -331,8 +337,10 @@ Tart VM images provide complete macOS virtual machines for .NET MAUI development
 **Available Tags:**
 - `tahoe-dotnet10.0` - .NET 10.0 on macOS Tahoe
 - `tahoe-dotnet10.0-workloads10.0.100-rc.2.25024.3` - Specific workload version
+- `tahoe-dotnet10.0-workloads10.0.1xx` - Rolling tag for the 10.0.100-199 workload band
 - `tahoe-dotnet9.0` - .NET 9.0 on macOS Tahoe
 - `tahoe-dotnet9.0-workloads9.0.305` - Specific workload version
+- `tahoe-dotnet9.0-workloads9.0.3xx` - Rolling tag for the 9.0.300-399 workload band
 
 Images are automatically built and published to GitHub Container Registry (ghcr.io) when workload updates are detected or when manually triggered.
 

@@ -87,9 +87,11 @@ Write-Host "Using build context: $contextPath"
 # Build tags following the unified naming scheme:
 # - dotnet{X.Y} - Latest workload for this .NET version
 # - dotnet{X.Y}-workloads{X.Y.Z} - Specific workload version
+# - dotnet{X.Y}-workloads{X.Y.Nxx} - Rolling workload band alias (e.g. 10.0.2xx)
 # - dotnet{X.Y}-workloads{X.Y.Z}-v{sha} - SHA-pinned version (optional)
 # If Version is not "latest", also add a custom version tag
 $tags = @()
+$workloadBandTagVersion = Get-WorkloadBandTag -WorkloadVersion $dotnetCommandWorkloadSetVersion
 
 # 1. dotnet{X.Y} tag (this is the "latest" for this .NET version)
 $dotnetTag = "$DockerRepository`:dotnet$DotnetVersion"
@@ -99,13 +101,21 @@ $tags += $dotnetTag
 $workloadTag = "$DockerRepository`:dotnet$DotnetVersion-workloads$dotnetCommandWorkloadSetVersion"
 $tags += $workloadTag
 
-# 3. Optional: dotnet{X.Y}-workloads{X.Y.Z}-v{sha} tag
+# 3. Optional: dotnet{X.Y}-workloads{X.Y.Nxx} rolling band tag
+if ($workloadBandTagVersion) {
+    $workloadBandTag = "$DockerRepository`:dotnet$DotnetVersion-workloads$workloadBandTagVersion"
+    if ($tags -notcontains $workloadBandTag) {
+        $tags += $workloadBandTag
+    }
+}
+
+# 4. Optional: dotnet{X.Y}-workloads{X.Y.Z}-v{sha} tag
 if ($BuildSha) {
     $shaTag = "$DockerRepository`:dotnet$DotnetVersion-workloads$dotnetCommandWorkloadSetVersion-v$BuildSha"
     $tags += $shaTag
 }
 
-# 4. Optional: Custom version tag (for PR builds, etc.)
+# 5. Optional: Custom version tag (for PR builds, etc.)
 if ($Version -ne "latest") {
     $customTag = "$DockerRepository`:dotnet$DotnetVersion-$Version"
     $tags += $customTag
