@@ -74,7 +74,7 @@ ENV INIT_BASH_SCRIPT="/config/init.sh"
 #    fi
 
 # Set core environment variables
-ENV NODE_VERSION=22.x \
+ENV NODE_VERSION=lts.x \
     ANDROID_HOME=/home/mauiusr/android-sdk \
     ANDROID_SDK_ROOT=/home/mauiusr/android-sdk \
     DEBIAN_FRONTEND=noninteractive \
@@ -144,10 +144,13 @@ RUN ubuntu_release=$(lsb_release -rs) \
     && apt clean all \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Node.js and npm
-RUN curl -sL https://deb.nodesource.com/setup_${NODE_VERSION} | bash -
-RUN apt-get -qqy install nodejs
-RUN npm install -g npm
+# Install Node.js and npm from the current LTS channel.
+# Appium tracks LTS well, and avoiding npm self-upgrades prevents transient package resolution failures.
+RUN curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION} | bash - \
+    && apt-get install -y nodejs \
+    && apt autoremove -y \
+    && apt clean all \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install Appium
 RUN npm install -g appium@${APPIUM_VERSION}
