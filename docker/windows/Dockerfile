@@ -63,6 +63,18 @@ ENV ANDROID_HOME="C:/android-sdk"
 ENV ANDROID_SDK_ROOT="C:/android-sdk"
 ENV LOG_PATH="C:\\logs\\"
 
+# .NET CLI environment — grant the Users group modify rights on the SDK tree
+# (see icacls step below) so CI can install/update workloads and global tools
+# whether the container runs as ContainerAdministrator or ContainerUser. Pin
+# NUGET_PACKAGES under the user profile to avoid a machine-wide cache getting
+# layered in from a future base image.
+ENV DOTNET_INSTALL_DIR="C:\\Program Files\\dotnet"
+ENV DOTNET_MULTILEVEL_LOOKUP="0"
+ENV DOTNET_CLI_TELEMETRY_OPTOUT="1"
+ENV DOTNET_NOLOGO="1"
+ENV DOTNET_SKIP_FIRST_TIME_EXPERIENCE="1"
+ENV NUGET_PACKAGES="C:\\Users\\ContainerUser\\.nuget\\packages"
+
 # Set PowerShell as the default shell
 SHELL ["powershell.exe", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
 
@@ -79,6 +91,12 @@ RUN choco install nodejs-lts -y
 
 # Install openjdk
 RUN choco install microsoft-openjdk$($env:JDK_MAJOR_VERSION) -y
+
+# Grant the Users group modify rights on the .NET SDK tree so non-admin
+# container users can install/update workloads and global tools without
+# elevation. This is a no-op for ContainerAdministrator but unblocks CI
+# scenarios that run as ContainerUser.
+RUN icacls 'C:\Program Files\dotnet' /grant '*S-1-5-32-545:(OI)(CI)M' /T /C | Out-Null
 
 # Install the Workloads
 RUN dotnet workload install maui wasm-tools --version $env:DOTNET_WORKLOADS_VERSION

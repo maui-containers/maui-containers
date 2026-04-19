@@ -229,6 +229,18 @@ FROM maui-containers/maui-linux:dotnet10.0-workloads10.0.100-rc.2.25024.3
 - `INIT_PWSH_SCRIPT` - PowerShell script to run before starting runners (Linux/Windows)
 - `INIT_BASH_SCRIPT` - Bash script to run before starting runners (Linux only)
 
+**.NET SDK location (advanced):**
+The images keep the .NET SDK at the base-image default location
+(`/usr/share/dotnet` on Linux, `C:\Program Files\dotnet` on Windows) but make
+it writable for the runtime user, so `dotnet workload update`,
+`dotnet workload install`, and `dotnet tool install -g` all succeed from CI
+without elevation. The following are set image-wide and usually don't need
+overriding:
+- `DOTNET_ROOT` / `DOTNET_INSTALL_DIR` — point at the SDK tree
+- `DOTNET_MULTILEVEL_LOOKUP=0` — stop probing for secondary installs
+- `NUGET_PACKAGES` — pinned under the runtime user's profile
+- `DOTNET_CLI_TELEMETRY_OPTOUT=1`, `DOTNET_NOLOGO=1`, `DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1`
+
 See [docker/linux/README.md](docker/linux/README.md) and [docker/windows/README.md](docker/windows/README.md) for detailed documentation.
 
 ### macOS Host Provisioning

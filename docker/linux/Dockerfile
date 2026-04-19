@@ -68,6 +68,19 @@ ENV ANDROID_HOME=/home/mauiusr/android-sdk \
     LOG_PATH=/logs \
     JAVA_HOME="/usr/lib/jvm/msopenjdk-${JDK_MAJOR_VERSION}-${TARGETARCH}"
 
+# .NET CLI environment — make the SDK tree user-writable so CI (running as
+# mauiusr) can install/update workloads and global tools without sudo. The SDK
+# itself stays at the default location from the base image; we just chown it
+# to mauiusr below. Pin NUGET_PACKAGES under $HOME so a root-owned cache can
+# never get layered in from a future base image.
+ENV DOTNET_ROOT=/usr/share/dotnet \
+    DOTNET_INSTALL_DIR=/usr/share/dotnet \
+    DOTNET_MULTILEVEL_LOOKUP=0 \
+    DOTNET_CLI_TELEMETRY_OPTOUT=1 \
+    DOTNET_NOLOGO=1 \
+    DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1 \
+    NUGET_PACKAGES=/home/mauiusr/.nuget/packages
+
 # Create log directory
 RUN mkdir ${LOG_PATH}
 
@@ -123,14 +136,20 @@ RUN ubuntu_release=$(lsb_release -rs) \
     && apt clean all \
     && rm -rf /var/lib/apt/lists/*
 
-# Install the Workloads
-RUN dotnet workload install maui-android wasm-tools --version ${DOTNET_WORKLOADS_VERSION}
+# Install the Workloads as mauiusr so the non-root user can later update them
+# without sudo. This requires the SDK tree to be user-writable.
+RUN chown -R 1400:1401 /usr/share/dotnet \
+    && mkdir -p /home/mauiusr/.nuget/packages \
+    && chown -R 1400:1401 /home/mauiusr/.nuget
 
 # Fix permissions on the log directory
 RUN chown -R 1400:1401 ${LOG_PATH}
 
 # Switch to mauiusr
 USER 1400:1401
+
+# Install MAUI workloads (runs as mauiusr into the now-user-owned SDK tree)
+RUN dotnet workload install maui-android wasm-tools --version ${DOTNET_WORKLOADS_VERSION}
 
 # Install Android SDK Tool & AppleDev Tool
 RUN dotnet tool install -g AndroidSdk.Tool
