@@ -11,12 +11,12 @@ on:
         description: 'JSON array of .NET versions to build (e.g., ["9.0", "10.0"])'
         required: false
         type: string
-        default: '["9.0"]'
+        default: '["10.0"]'
       android_api_levels:
         description: 'JSON array of Android API levels to build (e.g., [34, 35])'
         required: false
         type: string
-        default: '[23, 24, 25, 26, 28, 29, 30, 31, 32, 33, 34, 35]'
+        default: '[23, 24, 25, 26, 28, 29, 30, 31, 32, 33, 34, 35, 36]'
       appium_version:
         description: 'Specific Appium version to use (defaults to latest from npm)'
         required: false
