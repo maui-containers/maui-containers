@@ -236,6 +236,36 @@ jobs:
       with:
         driver: docker
 
+    - name: 💾 Move Docker data root to D: drive (Windows)
+      if: matrix.platform == 'windows'
+      shell: pwsh
+      run: |
+        Write-Host "=== Disk space before relocation ==="
+        Get-PSDrive -PSProvider FileSystem | Format-Table Name, @{N='Free(GB)';E={[math]::Round($_.Free/1GB,1)}}, @{N='Used(GB)';E={[math]::Round($_.Used/1GB,1)}}
+
+        Write-Host "Stopping Docker service..."
+        Stop-Service docker
+
+        Write-Host "Creating D:\docker-data..."
+        New-Item -ItemType Directory -Force -Path "D:\docker-data" | Out-Null
+
+        $daemonJsonPath = "C:\ProgramData\docker\config\daemon.json"
+        if (Test-Path $daemonJsonPath) {
+          $config = Get-Content $daemonJsonPath -Raw | ConvertFrom-Json
+        } else {
+          New-Item -ItemType Directory -Force -Path (Split-Path $daemonJsonPath) | Out-Null
+          $config = [pscustomobject]@{}
+        }
+        $config | Add-Member -NotePropertyName "data-root" -NotePropertyValue "D:\docker-data" -Force
+        $config | ConvertTo-Json -Depth 5 | Set-Content $daemonJsonPath
+        Write-Host "Updated daemon.json: $(Get-Content $daemonJsonPath)"
+
+        Write-Host "Starting Docker service..."
+        Start-Service docker
+
+        Write-Host "=== Disk space after relocation ==="
+        Get-PSDrive -PSProvider FileSystem | Format-Table Name, @{N='Free(GB)';E={[math]::Round($_.Free/1GB,1)}}, @{N='Used(GB)';E={[math]::Round($_.Used/1GB,1)}}
+
     - name: 🔨 Build Docker image
       shell: pwsh
       run: |
