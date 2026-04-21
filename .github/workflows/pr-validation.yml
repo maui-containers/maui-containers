@@ -458,6 +458,94 @@ jobs:
           Write-Warning "⚠️ Android ${{ matrix.android_api_level }} system images not found"
         }
 
+    - name: 🚀 Runtime smoke test (boot + ADB + Appium)
+      if: matrix.build_test == 'true'
+      shell: bash
+      timeout-minutes: 15
+      run: |
+        set -euo pipefail
+
+        IMAGE="${{ env.DOCKER_REPOSITORY_TEST }}:android${{ matrix.android_api_level }}-dotnet${{ matrix.dotnet_version }}-pr-test"
+        CONTAINER_NAME="emulator-smoke-$$"
+        BOOT_TIMEOUT=360
+        APPIUM_TIMEOUT=60
+
+        cleanup() {
+          echo "🧹 Cleaning up container..."
+          docker logs "$CONTAINER_NAME" 2>&1 | tail -80 || true
+          docker rm -f "$CONTAINER_NAME" 2>/dev/null || true
+        }
+        trap cleanup EXIT
+
+        echo "🚀 Starting emulator container: $IMAGE"
+        docker run -d \
+          --name "$CONTAINER_NAME" \
+          --device /dev/kvm \
+          -e EMULATOR_BOOT_TIMEOUT=$BOOT_TIMEOUT \
+          -p 5554:5554 -p 5555:5555 -p 4723:4723 \
+          "$IMAGE"
+
+        # 1. Wait for emulator boot via Docker healthcheck or adb
+        echo "⏳ Waiting for emulator to boot (timeout: ${BOOT_TIMEOUT}s)..."
+        ELAPSED=0
+        while [ "$ELAPSED" -lt "$BOOT_TIMEOUT" ]; do
+          BOOT=$(docker exec "$CONTAINER_NAME" \
+            /home/mauiusr/.android/platform-tools/adb -s emulator-5554 shell getprop sys.boot_completed 2>/dev/null || true)
+          if [ "$(echo "$BOOT" | tr -d '[:space:]')" = "1" ]; then
+            echo "✅ Emulator booted in ~${ELAPSED}s"
+            break
+          fi
+          sleep 5
+          ELAPSED=$((ELAPSED + 5))
+          if [ $((ELAPSED % 30)) -eq 0 ]; then
+            echo "  Still booting... ${ELAPSED}s"
+          fi
+        done
+
+        if [ "$ELAPSED" -ge "$BOOT_TIMEOUT" ]; then
+          echo "❌ Emulator failed to boot within ${BOOT_TIMEOUT}s"
+          exit 1
+        fi
+
+        # 2. Verify adb sees the device
+        echo "🔍 Checking adb devices..."
+        ADB_OUTPUT=$(docker exec "$CONTAINER_NAME" \
+          /home/mauiusr/.android/platform-tools/adb devices 2>/dev/null)
+        echo "$ADB_OUTPUT"
+        if echo "$ADB_OUTPUT" | grep -q "emulator-5554"; then
+          echo "✅ ADB sees emulator"
+        else
+          echo "❌ ADB does not see emulator"
+          exit 1
+        fi
+
+        # 3. Wait for Appium /status endpoint
+        echo "⏳ Waiting for Appium to respond (timeout: ${APPIUM_TIMEOUT}s)..."
+        ELAPSED=0
+        while [ "$ELAPSED" -lt "$APPIUM_TIMEOUT" ]; do
+          HTTP_CODE=$(docker exec "$CONTAINER_NAME" \
+            curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:4723/status 2>/dev/null || echo "000")
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "✅ Appium is responding on port 4723"
+            break
+          fi
+          sleep 3
+          ELAPSED=$((ELAPSED + 3))
+        done
+
+        if [ "$ELAPSED" -ge "$APPIUM_TIMEOUT" ]; then
+          echo "❌ Appium did not respond within ${APPIUM_TIMEOUT}s"
+          exit 1
+        fi
+
+        # 4. Verify healthcheck script
+        echo "🏥 Running in-container healthcheck..."
+        docker exec "$CONTAINER_NAME" /usr/bin/bash /home/mauiusr/healthcheck.sh
+        echo "✅ Healthcheck passed"
+
+        echo ""
+        echo "🎉 Runtime smoke test passed: emulator boots, ADB works, Appium responds"
+
   # Step 4: Build Tart VM Images (macOS only)
   build-tart-images:
     name: 🍎 Build Tart VM (.NET ${{ matrix.dotnet_version }})

@@ -65,6 +65,21 @@ LABEL org.opencontainers.image.title="MAUI Android Emulator Test Container" \
 ENV INIT_PWSH_SCRIPT="/config/init.ps1"
 ENV INIT_BASH_SCRIPT="/config/init.sh"
 
+# Runtime-configurable emulator and service options (override with -e at docker run)
+ENV EMULATOR_BOOT_TIMEOUT=600
+ENV EMULATOR_PORT=5554
+ENV EMULATOR_WIPE_DATA=true
+ENV EMULATOR_SNAPSHOT_MODE=none
+ENV EMULATOR_EXTRA_ARGS=""
+ENV AVD_NAME=""
+ENV DISABLE_ANIMATIONS=true
+ENV DISABLE_SPELLCHECKER=false
+ENV ENABLE_HW_KEYBOARD=false
+ENV POST_BOOT_SCRIPT=""
+ENV PRE_EMULATOR_LAUNCH_SCRIPT=""
+ENV APPIUM_LOG_LEVEL=debug
+ENV APPIUM_PORT=4723
+
 # Not needed currently as linux android sdk doesn't support arm64 emulators
 # Generate environment variables
 #RUN if [ "$TARGETARCH" = "arm64" ]; then \
@@ -171,6 +186,7 @@ COPY scripts/emulator.sh /home/mauiusr/emulator.sh
 COPY scripts/appium.sh /home/mauiusr/appium.sh
 COPY scripts/androidportforward.sh /home/mauiusr/androidportforward.sh
 COPY scripts/init.sh /home/mauiusr/init.sh
+COPY scripts/healthcheck.sh /home/mauiusr/healthcheck.sh
 
 # Install appium UIautomator2 driver
 RUN appium driver install uiautomator2@${APPIUM_UIAUTOMATOR2_DRIVER_VERSION}
@@ -201,6 +217,10 @@ RUN android avd create \
 
 # Expose ports for Appium, Android emulator, ADB, and GRPC
 EXPOSE 4723 5554 5555 8554
+
+# Healthcheck: verifies emulator is booted and Appium is listening
+HEALTHCHECK --interval=10s --timeout=5s --start-period=120s --retries=3 \
+    CMD /usr/bin/bash /home/mauiusr/healthcheck.sh
 
 # Default command
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
