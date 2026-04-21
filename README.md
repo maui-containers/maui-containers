@@ -262,6 +262,8 @@ See [docker/linux/README.md](docker/linux/README.md) and [docker/windows/README.
 
 Emulator images are designed to help quickly stand up containers that are ready to use for running UI Tests with Appium on the Android Emulator. They come setup with Appium Server and the Android Emulator (for the given API level) both running and waiting when the container is started.
 
+The container uses a deterministic startup sequence: the emulator boots first and is validated via `adb`, then Appium starts only after the emulator is confirmed ready. A built-in Docker `HEALTHCHECK` reports the combined readiness of both services.
+
 **Repository:** `maui-containers/maui-emulator-linux`
 
 > NOTE: Only `linux/amd64` is available.
@@ -285,9 +287,86 @@ docker run \
 ### Volumes:
 The host folder with the built apk's can be mapped to a folder in the container.  You can then specify the location of the apk to install to appium using the container's path to it (eg: `/app/my.companyname.app-Signed.apk`).
 
-### Environment Variables:
-- `INIT_PWSH_SCRIPT` Optionally (linux or windows images) specify a path to a .ps1 script file to run before starting the runner agent (Default path is `/config/init.ps1` on linux and `C:\\config\\init.ps1` on windows - you would need to bind a volume for the script to use)
-- `INIT_BASH_SCRIPT` Optionally (linux image only) specify a path to a .ps1 script file to run before starting the runner agent (Default path is `/config/init.sh` on linux - you would need to bind a volume for the script to use)
+### Environment Variables
+
+#### Initialization hooks
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `INIT_PWSH_SCRIPT` | `/config/init.ps1` | Path to a PowerShell script to run before services start. Bind a volume to supply the script. |
+| `INIT_BASH_SCRIPT` | `/config/init.sh` | Path to a bash script to run before services start. Bind a volume to supply the script. |
+| `PRE_EMULATOR_LAUNCH_SCRIPT` | _(none)_ | Path to a bash script that runs after init but before the emulator starts. Useful for patching AVD config or preloading state. |
+| `POST_BOOT_SCRIPT` | _(none)_ | Path to a bash script that runs after the emulator has booted and device tuning is applied. |
+
+#### Emulator configuration
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `EMULATOR_BOOT_TIMEOUT` | `600` | Maximum seconds to wait for `sys.boot_completed`. Container exits with an error if exceeded. |
+| `EMULATOR_PORT` | `5554` | Emulator console port. ADB port is automatically `EMULATOR_PORT + 1`. |
+| `EMULATOR_WIPE_DATA` | `true` | Pass `-wipe-data` to the emulator for a clean boot each time. Set to `false` to preserve data between restarts. |
+| `EMULATOR_SNAPSHOT_MODE` | `none` | Snapshot behavior: `none` (no load/save), `load` (load existing, don't save), `save` (don't load, save on exit), `full` (load and save). |
+| `EMULATOR_EXTRA_ARGS` | _(none)_ | Additional flags appended to the emulator command line. |
+| `AVD_NAME` | `Emulator_{API_LEVEL}` | Name of the AVD to launch. Matches the AVD created at image build time by default. |
+
+#### Post-boot device tuning
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DISABLE_ANIMATIONS` | `true` | Disable window, transition, and animator animations via `adb shell settings`. Recommended for UI testing. |
+| `DISABLE_SPELLCHECKER` | `false` | Disable Android spellchecker to avoid input-field interference during tests. |
+| `ENABLE_HW_KEYBOARD` | `false` | Suppress the soft keyboard by enabling hardware keyboard mode. Useful for automation that types via `adb` input. |
+
+#### Appium configuration
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `APPIUM_LOG_LEVEL` | `debug` | Appium server log verbosity: `debug`, `info`, `warn`, `error`. |
+| `APPIUM_PORT` | `4723` | Port for the Appium HTTP server. |
+
+### Snapshot Reuse (Fast Warm Start)
+
+By default the container wipes emulator data and disables snapshots, giving a clean, deterministic boot every time. For faster iteration you can opt into snapshot reuse:
+
+**Create a snapshot (first run):**
+```bash
+docker run \
+    --device /dev/kvm \
+    -e EMULATOR_WIPE_DATA=false \
+    -e EMULATOR_SNAPSHOT_MODE=save \
+    -v emulator-avd:/home/mauiusr/.android/avd \
+    -p 4723:4723 \
+    maui-containers/maui-emulator-linux:android35-dotnet10.0
+```
+
+**Reuse the snapshot (subsequent runs):**
+```bash
+docker run \
+    --device /dev/kvm \
+    -e EMULATOR_WIPE_DATA=false \
+    -e EMULATOR_SNAPSHOT_MODE=load \
+    -v emulator-avd:/home/mauiusr/.android/avd \
+    -p 4723:4723 \
+    maui-containers/maui-emulator-linux:android35-dotnet10.0
+```
+
+> **Caution:** Snapshot reuse may leak state between test runs. Keep it opt-in and use the default `none` mode for CI pipelines that require isolation.
+
+### Healthcheck
+
+The image includes a built-in Docker `HEALTHCHECK` that validates:
+1. The emulator has fully booted (`sys.boot_completed == 1`)
+2. The Appium server is responding on its configured port
+
+Use `docker inspect --format='{{.State.Health.Status}}'` or wait for `healthy` status in orchestrators like Docker Compose.
+
+### Helper script
+
+Use `docker/test/run.ps1` for a quick local launch:
+
+```powershell
+# Default: API 35, .NET 10.0
+pwsh ./docker/test/run.ps1 -AndroidSdkApiLevel 35 -DotnetVersion 10.0
+
+# With runtime options
+pwsh ./docker/test/run.ps1 -AndroidSdkApiLevel 35 -DisableSpellchecker -EnableHwKeyboard
+```
 
 ### Variants
 
