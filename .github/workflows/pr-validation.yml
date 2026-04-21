@@ -236,7 +236,7 @@ jobs:
       with:
         driver: docker
 
-    - name: 💾 Move Docker data root to D: drive (Windows)
+    - name: "💾 Move Docker data root to D: drive (Windows)"
       if: matrix.platform == 'windows'
       shell: pwsh
       run: |

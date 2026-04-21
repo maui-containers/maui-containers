@@ -32,7 +32,7 @@ jobs:
     - name: 🛒 Checkout
       uses: actions/checkout@v4
 
-    - name: 💾 Move Docker data root to D: drive
+    - name: "💾 Move Docker data root to D: drive"
       shell: pwsh
       run: |
         Write-Host "=== Disk space before relocation ==="
