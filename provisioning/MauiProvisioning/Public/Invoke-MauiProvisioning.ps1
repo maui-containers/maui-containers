@@ -150,6 +150,9 @@ function Invoke-MauiProvisioning {
     Write-Host "Android build tools: $($androidDetails.BuildToolsVersion)"
     Write-Host "Android cmdline tools: $($androidDetails.CmdLineToolsVersion)"
     Write-Host "JDK major version: $($androidDetails.JdkMajorVersion)"
+    if ($androidDetails.WorkloadJdkMajorVersion -and $androidDetails.WorkloadJdkMajorVersion -ne $androidDetails.JdkMajorVersion) {
+        Write-Host "Workload JDK major version: $($androidDetails.WorkloadJdkMajorVersion) (using default minimum $($androidDetails.JdkMajorVersion))"
+    }
 
     if ($iOSDetails) {
         Write-Host "Xcode recommended version: $($iOSDetails.XcodeRecommendedVersion)"
@@ -175,7 +178,15 @@ function Invoke-MauiProvisioning {
     $jdkMajor = $androidDetails.JdkMajorVersion
     $desiredJdkVersion = $null
     if ($androidDetails -and $androidDetails.PSObject.Properties.Match('JdkRecommendedVersion')) {
-        $desiredJdkVersion = $androidDetails.JdkRecommendedVersion
+        $recommendedJdkVersion = $androidDetails.JdkRecommendedVersion
+        if ($recommendedJdkVersion -match '^(\d+)') {
+            $recommendedJdkMajor = [int]$Matches[1]
+            if ($recommendedJdkMajor -eq [int]$jdkMajor) {
+                $desiredJdkVersion = $recommendedJdkVersion
+            } else {
+                Write-Host "Skipping exact JDK recommendation $recommendedJdkVersion because effective JDK major version is $jdkMajor"
+            }
+        }
     }
 
     $jdkSuccess = Ensure-JavaDevelopmentKit -JdkMajorVersion $jdkMajor -RecommendedVersion $desiredJdkVersion

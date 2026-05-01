@@ -132,8 +132,29 @@ function Ensure-WindowsJdk {
     # Install using package manager
     switch ($platformPaths.PackageManager) {
         "choco" {
-            $packageName = "microsoft-openjdk$JdkMajorVersion"
-            Invoke-ExternalCommand -Command "choco" -Arguments ($platformPaths.PackageManagerInstallCmd + $packageName)
+            $specificPackageName = "microsoft-openjdk$JdkMajorVersion"
+            $specificPackage = & choco search $specificPackageName --exact --limit-output
+            if ($specificPackage | Where-Object { $_.StartsWith($specificPackageName + '|') } | Select-Object -First 1) {
+                Invoke-ExternalCommand -Command "choco" -Arguments ($platformPaths.PackageManagerInstallCmd + $specificPackageName)
+                break
+            }
+
+            $genericPackageName = "microsoft-openjdk"
+            $matchingPackageVersion = & choco search $genericPackageName --exact --all-versions --limit-output |
+                ForEach-Object {
+                    $packageParts = $_.Split('|')
+                    if ($packageParts.Length -eq 2 -and $packageParts[0] -eq $genericPackageName -and $packageParts[1].StartsWith("$JdkMajorVersion.")) {
+                        $packageParts[1]
+                    }
+                } |
+                Sort-Object { [version]$_ } -Descending |
+                Select-Object -First 1
+
+            if (-not $matchingPackageVersion) {
+                throw "Could not find Microsoft OpenJDK Chocolatey package version for JDK $JdkMajorVersion"
+            }
+
+            Invoke-ExternalCommand -Command "choco" -Arguments ($platformPaths.PackageManagerInstallCmd + $genericPackageName + "--version=$matchingPackageVersion")
         }
         "winget" {
             $packageName = "Microsoft.OpenJDK.$JdkMajorVersion"

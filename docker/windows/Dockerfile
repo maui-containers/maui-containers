@@ -5,7 +5,7 @@ ARG DOTNET_VERSION=9.0
 FROM mcr.microsoft.com/dotnet/sdk:${DOTNET_VERSION}-windowsservercore-ltsc2022
 
 # Set build arguments
-ARG JDK_MAJOR_VERSION=17
+ARG JDK_MAJOR_VERSION=21
 ARG ANDROID_SDK_API_LEVEL=35
 ARG ANDROID_SDK_BUILD_TOOLS_VERSION=33.0.3
 ARG ANDROID_SDK_CMDLINE_TOOLS_VERSION=13.0
@@ -89,8 +89,18 @@ RUN Set-ExecutionPolicy Bypass -Scope Process -Force; \
 # Install Node.js and npm
 RUN choco install nodejs-lts -y
 
-# Install openjdk
-RUN choco install microsoft-openjdk$($env:JDK_MAJOR_VERSION) -y
+# Install OpenJDK. Chocolatey has version-specific packages for some JDK majors
+# (for example microsoft-openjdk17) but JDK 21 is published under the generic
+# microsoft-openjdk package with versioned releases.
+RUN $specificJdkPackage = 'microsoft-openjdk' + $env:JDK_MAJOR_VERSION; \
+    $specificJdkPackageMatch = choco search $specificJdkPackage --exact --limit-output | Where-Object { $_.StartsWith($specificJdkPackage + '|') } | Select-Object -First 1; \
+    if ($specificJdkPackageMatch) { \
+        choco install $specificJdkPackage -y; \
+    } else { \
+        $jdkPackageVersion = choco search microsoft-openjdk --exact --all-versions --limit-output | ForEach-Object { $packageParts = $_.Split('|'); if ($packageParts.Length -eq 2 -and $packageParts[0] -eq 'microsoft-openjdk' -and $packageParts[1].StartsWith($env:JDK_MAJOR_VERSION + '.')) { $packageParts[1] } } | Sort-Object { [version]$_ } -Descending | Select-Object -First 1; \
+        if (-not $jdkPackageVersion) { throw ('Could not find Microsoft OpenJDK package version for JDK ' + $env:JDK_MAJOR_VERSION) } \
+        choco install microsoft-openjdk --version=$jdkPackageVersion -y; \
+    }
 
 # Grant the Users group modify rights on the .NET SDK tree so non-admin
 # container users can install/update workloads and global tools without
