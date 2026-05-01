@@ -134,7 +134,7 @@ function Ensure-WindowsJdk {
         "choco" {
             $specificPackageName = "microsoft-openjdk$JdkMajorVersion"
             $specificPackage = & choco search $specificPackageName --exact --limit-output
-            if ($specificPackage | Where-Object { $_ -match "^$([regex]::Escape($specificPackageName))\|" } | Select-Object -First 1) {
+            if ($specificPackage | Where-Object { $_.StartsWith($specificPackageName + '|') } | Select-Object -First 1) {
                 Invoke-ExternalCommand -Command "choco" -Arguments ($platformPaths.PackageManagerInstallCmd + $specificPackageName)
                 break
             }
@@ -142,11 +142,11 @@ function Ensure-WindowsJdk {
             $genericPackageName = "microsoft-openjdk"
             $matchingPackageVersion = & choco search $genericPackageName --exact --all-versions --limit-output |
                 ForEach-Object {
-                    if ($_ -match "^$([regex]::Escape($genericPackageName))\|(.+)$") {
-                        $Matches[1]
+                    $packageParts = $_.Split('|')
+                    if ($packageParts.Length -eq 2 -and $packageParts[0] -eq $genericPackageName -and $packageParts[1].StartsWith("$JdkMajorVersion.")) {
+                        $packageParts[1]
                     }
                 } |
-                Where-Object { $_ -match "^$JdkMajorVersion\." } |
                 Sort-Object { [version]$_ } -Descending |
                 Select-Object -First 1
 

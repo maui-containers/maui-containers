@@ -92,13 +92,13 @@ RUN choco install nodejs-lts -y
 # Install OpenJDK. Chocolatey has version-specific packages for some JDK majors
 # (for example microsoft-openjdk17) but JDK 21 is published under the generic
 # microsoft-openjdk package with versioned releases.
-RUN $specificJdkPackage = "microsoft-openjdk$($env:JDK_MAJOR_VERSION)"; \
-    $specificJdkPackageMatch = choco search $specificJdkPackage --exact --limit-output | Where-Object { $_ -match "^$([regex]::Escape($specificJdkPackage))\|" } | Select-Object -First 1; \
+RUN $specificJdkPackage = 'microsoft-openjdk' + $env:JDK_MAJOR_VERSION; \
+    $specificJdkPackageMatch = choco search $specificJdkPackage --exact --limit-output | Where-Object { $_.StartsWith($specificJdkPackage + '|') } | Select-Object -First 1; \
     if ($specificJdkPackageMatch) { \
         choco install $specificJdkPackage -y; \
     } else { \
-        $jdkPackageVersion = choco search microsoft-openjdk --exact --all-versions --limit-output | ForEach-Object { if ($_ -match '^microsoft-openjdk\|(.+)$') { $Matches[1] } } | Where-Object { $_ -match "^$($env:JDK_MAJOR_VERSION)\." } | Sort-Object { [version]$_ } -Descending | Select-Object -First 1; \
-        if (-not $jdkPackageVersion) { throw "Could not find Microsoft OpenJDK package version for JDK $($env:JDK_MAJOR_VERSION)" } \
+        $jdkPackageVersion = choco search microsoft-openjdk --exact --all-versions --limit-output | ForEach-Object { $packageParts = $_.Split('|'); if ($packageParts.Length -eq 2 -and $packageParts[0] -eq 'microsoft-openjdk' -and $packageParts[1].StartsWith($env:JDK_MAJOR_VERSION + '.')) { $packageParts[1] } } | Sort-Object { [version]$_ } -Descending | Select-Object -First 1; \
+        if (-not $jdkPackageVersion) { throw ('Could not find Microsoft OpenJDK package version for JDK ' + $env:JDK_MAJOR_VERSION) } \
         choco install microsoft-openjdk --version=$jdkPackageVersion -y; \
     }
 
