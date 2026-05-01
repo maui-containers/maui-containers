@@ -40,7 +40,7 @@ Invoke-MauiProvisioning -DotnetChannel 9.0 -DryRun
 - Latest .NET SDK for the specified channel using `dotnet-install`
 - Workload set aligned MAUI workloads (`maui`, `wasm-tools`)
 - Android SDK command line packages: platform-tools, build-tools, cmdline-tools, and the target platform API
-- Microsoft OpenJDK (`microsoft-openjdk@17` cask by default)
+- Microsoft OpenJDK inferred from the Android workload, with JDK 21 used as the minimum default
 - `AndroidSdk.Tool` and `AppleDev.Tools` dotnet global tools
 - Recommended Xcode version and matching iOS/tvOS simulator runtimes (installed via `xcodes`)
 - Accepted Android SDK licenses plus `android-sdk-info.json` and `android-sdk-installed.json` logs under `~/Library/Logs/maui-macos-provisioning`

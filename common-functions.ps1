@@ -448,6 +448,47 @@ function Parse-VersionInfo {
     }
 }
 
+function Resolve-JdkMajorVersion {
+    param (
+        [string]$RecommendedVersion,
+        [string]$VersionRange,
+        [int]$MinimumMajorVersion = 21
+    )
+
+    $inferredMajorVersion = $null
+    $inferredFrom = $null
+
+    if ($RecommendedVersion -match '^(\d+)') {
+        $inferredMajorVersion = [int]$Matches[1]
+        $inferredFrom = "recommended version"
+    } elseif ($VersionRange -match '^\s*[\[\(]?\s*(\d+)') {
+        $inferredMajorVersion = [int]$Matches[1]
+        $inferredFrom = "version range"
+    }
+
+    $effectiveMajorVersion = $MinimumMajorVersion
+    $wasDefaulted = $false
+
+    if ($null -ne $inferredMajorVersion) {
+        if ($inferredMajorVersion -gt $MinimumMajorVersion) {
+            $effectiveMajorVersion = $inferredMajorVersion
+        } elseif ($inferredMajorVersion -lt $MinimumMajorVersion) {
+            $wasDefaulted = $true
+            Write-Host "  Workload JDK major version $inferredMajorVersion from $inferredFrom is lower than default $MinimumMajorVersion; using JDK $MinimumMajorVersion"
+        }
+    } else {
+        $wasDefaulted = $true
+        Write-Host "  No workload JDK major version found; using default JDK $MinimumMajorVersion"
+    }
+
+    return [PSCustomObject]@{
+        EffectiveMajorVersion = $effectiveMajorVersion
+        InferredMajorVersion = $inferredMajorVersion
+        MinimumMajorVersion = $MinimumMajorVersion
+        WasDefaulted = $wasDefaulted
+    }
+}
+
 # Function to extract Android SDK and JDK information from workload dependencies
 function Get-AndroidWorkloadInfo {
     param (
@@ -459,6 +500,9 @@ function Get-AndroidWorkloadInfo {
     $androidJdkRecommendedVersion = $null
     $androidJdkVersionRange = $null
     $androidJdkMajorVersion = $null
+    $androidWorkloadJdkMajorVersion = $null
+    $androidJdkMinimumMajorVersion = 21
+    $androidJdkWasDefaulted = $true
     $androidSdkPackages = @()
     $buildToolsVersion = $null
     $cmdLineToolsVersion = $null
@@ -498,12 +542,17 @@ function Get-AndroidWorkloadInfo {
             Write-Host "  Version Range: $androidJdkVersionRange"
             Write-Host "  Recommended Version: $androidJdkRecommendedVersion"
             
-            # Extract major version from recommended version
-            if ($androidJdkRecommendedVersion -match '^(\d+)') {
-                $androidJdkMajorVersion = $Matches[1]
-                Write-Host "  Extracted JDK major version: $androidJdkMajorVersion"
-            }
         }
+
+        $jdkResolution = Resolve-JdkMajorVersion -RecommendedVersion $androidJdkRecommendedVersion -VersionRange $androidJdkVersionRange
+        $androidJdkMajorVersion = $jdkResolution.EffectiveMajorVersion.ToString()
+        $androidJdkMinimumMajorVersion = $jdkResolution.MinimumMajorVersion
+        $androidJdkWasDefaulted = $jdkResolution.WasDefaulted
+        if ($null -ne $jdkResolution.InferredMajorVersion) {
+            $androidWorkloadJdkMajorVersion = $jdkResolution.InferredMajorVersion.ToString()
+            Write-Host "  Extracted workload JDK major version: $androidWorkloadJdkMajorVersion"
+        }
+        Write-Host "  Effective JDK major version: $androidJdkMajorVersion"
         
         # Extract Android SDK packages
         if ($androidInfo.androidsdk -and $androidInfo.androidsdk.packages) {
@@ -599,6 +648,9 @@ function Get-AndroidWorkloadInfo {
         JdkMajorVersion = $androidJdkMajorVersion
         JdkRecommendedVersion = $androidJdkRecommendedVersion
         JdkVersionRange = $androidJdkVersionRange
+        WorkloadJdkMajorVersion = $androidWorkloadJdkMajorVersion
+        JdkMinimumMajorVersion = $androidJdkMinimumMajorVersion
+        JdkWasDefaulted = $androidJdkWasDefaulted
         BuildToolsVersion = $buildToolsVersion
         CmdLineToolsVersion = $cmdLineToolsVersion
         ApiLevel = $apiLevel

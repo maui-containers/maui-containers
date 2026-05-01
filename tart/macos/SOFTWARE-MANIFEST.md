@@ -303,7 +303,7 @@ The JSON manifest follows this schema:
     "npm": "10.2.4",
     "python": "3.12.1",
     "ruby": "3.3.0",
-    "java": "17.0.10",
+    "java": "21.0.x",
     "git": "2.43.0"
   },
   "packageManagers": {

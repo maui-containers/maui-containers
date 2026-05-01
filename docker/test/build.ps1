@@ -70,7 +70,7 @@ if ([string]::IsNullOrEmpty($AppiumVersion) -or [string]::IsNullOrEmpty($AppiumU
 # These values are used as fallbacks if workload detection fails
 $androidBuildToolsVersion = "35.0.0"
 $androidCmdLineToolsVersion = "13.0"
-$androidJdkMajorVersion = "17"
+$androidJdkMajorVersion = "21"
 $androidAvdSystemImageType = "google_apis"
 $androidAvdDeviceType = "Nexus 5X"
 
