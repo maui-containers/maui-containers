@@ -99,7 +99,7 @@ RUN choco install microsoft-openjdk$($env:JDK_MAJOR_VERSION) -y
 RUN icacls 'C:\Program Files\dotnet' /grant '*S-1-5-32-545:(OI)(CI)M' /T /C | Out-Null
 
 # Install the Workloads
-RUN dotnet workload install maui wasm-tools --version $env:DOTNET_WORKLOADS_VERSION
+RUN dotnet workload install maui android ios maccatalyst macos wasm-tools tvos --version $env:DOTNET_WORKLOADS_VERSION
 
 # Install Android SDK Tool & AppleDev Tool
 RUN dotnet tool install -g AndroidSdk.Tool

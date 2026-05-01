@@ -296,7 +296,10 @@ function Invoke-MauiProvisioning {
     }
 
     $installedWorkloads = Get-InstalledDotnetWorkloads -DotnetPath $dotnetForChecks
-    $requiredWorkloads = @("maui", "wasm-tools")
+    $requiredWorkloads = @("maui")
+    if (-not $SkipAndroid) {
+        $requiredWorkloads += @("android")
+    }
     if (-not $SkipIOS -and $iOSDetails) {
         $requiredWorkloads += @("ios", "maccatalyst")
     }
@@ -306,6 +309,7 @@ function Invoke-MauiProvisioning {
     if (-not $SkipTvOS -and $tvOsDetails) {
         $requiredWorkloads += @("tvos")
     }
+    $requiredWorkloads += @("wasm-tools")
     $workloadsToInstall = @()
 
     foreach ($workloadId in $requiredWorkloads) {
