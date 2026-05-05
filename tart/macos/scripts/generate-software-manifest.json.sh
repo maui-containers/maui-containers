@@ -316,20 +316,6 @@ ENVIRONMENT_VARIABLES_JSON=$(jq -n '{
   ANDROID_SDK_ROOT: "~/Library/Android/sdk"
 }')
 
-CI_RUNNERS_JSON=$(jq -n '{
-  githubActions: {
-    scriptPath: "/Users/admin/actions-runner/maui-runner.sh",
-    autoStart: true,
-    configurationMethod: ".env file via --dir config"
-  },
-  giteaActions: {
-    binaryPath: "/Users/admin/gitea-runner/act_runner",
-    scriptPath: "/Users/admin/gitea-runner/gitea-runner.sh",
-    autoStart: true,
-    configurationMethod: ".env file via --dir config"
-  }
-}')
-
 # Optional build metadata
 BUILD_INFO_JSON='null'
 if [[ -f /usr/local/share/build-info.json ]]; then
@@ -342,7 +328,6 @@ if [[ -f /usr/local/share/build-info.json ]]; then
 fi
 
 validate_json_segment "environmentVariables" "${ENVIRONMENT_VARIABLES_JSON}"
-validate_json_segment "ciRunners" "${CI_RUNNERS_JSON}"
 [[ "${BUILD_INFO_JSON}" != "null" ]] && validate_json_segment "buildInfo" "${BUILD_INFO_JSON}"
 
 # Assemble final JSON manifest
@@ -359,7 +344,6 @@ if ! jq -n \
   --argjson tools "${TOOLS_JSON}" \
   --argjson homebrewPackages "${HOMEBREW_PACKAGES_JSON}" \
   --argjson environmentVariables "${ENVIRONMENT_VARIABLES_JSON}" \
-  --argjson ciRunners "${CI_RUNNERS_JSON}" \
   --argjson buildInfo "${BUILD_INFO_JSON}" \
   '{
     manifestVersion: $manifestVersion,
@@ -373,8 +357,7 @@ if ! jq -n \
     packageManagers: $packageManagers,
     tools: $tools,
     homebrewPackages: $homebrewPackages,
-    environmentVariables: $environmentVariables,
-    ciRunners: $ciRunners
+    environmentVariables: $environmentVariables
   } + (if $buildInfo == null then {} else {buildInfo: $buildInfo} end)' 2>"${TEMP_FILE}.builderr" > "${TEMP_FILE}"; then
   echo "ERROR: Failed to assemble final software manifest JSON" >&2
   [[ -s "${TEMP_FILE}.builderr" ]] && cat "${TEMP_FILE}.builderr" >&2

@@ -1,6 +1,6 @@
 #!/bin/bash
 # Entrypoint script for MAUI Linux container
-# Starts runners in background, then executes the CMD
+# Runs initialization hooks, then executes the CMD
 
 set -e
 
@@ -17,10 +17,6 @@ if [ -f "$INIT_PWSH_SCRIPT" ]; then
   echo "Running custom PowerShell init script: $INIT_PWSH_SCRIPT"
   pwsh "$INIT_PWSH_SCRIPT"
 fi
-
-# Start runner script in background
-echo "Starting runner management in background..."
-/usr/bin/bash /home/mauiusr/runner.sh &
 
 # Execute whatever CMD was provided (or default)
 echo "Executing CMD: $@"

@@ -215,11 +215,8 @@ jobs:
         Write-Host "To run the VM locally:"
         Write-Host "  tart run $imageName"
         Write-Host ""
-        Write-Host "To run with GitHub Actions runner:"
-        Write-Host "  GITHUB_ORG=your-org GITHUB_TOKEN=ghp_xxx tart run $imageName"
-        Write-Host ""
-        Write-Host "To run with Gitea Actions runner:"
-        Write-Host "  GITEA_INSTANCE_URL=https://gitea.example.com GITEA_RUNNER_TOKEN=xxx tart run $imageName"
+        Write-Host "To run with custom startup logic:"
+        Write-Host "  tart run $imageName --dir config:/path/to/config"
 
     - name: 🧹 Cleanup Local Images
       if: always()
@@ -320,8 +317,6 @@ jobs:
           echo "- Android builds" >> $GITHUB_STEP_SUMMARY
           echo "- .NET MAUI development" >> $GITHUB_STEP_SUMMARY
           echo "- UI testing with Appium" >> $GITHUB_STEP_SUMMARY
-          echo "- GitHub Actions runner (auto-register)" >> $GITHUB_STEP_SUMMARY
-          echo "- Gitea Actions runner (auto-register)" >> $GITHUB_STEP_SUMMARY
           echo "- Multiple Xcode versions" >> $GITHUB_STEP_SUMMARY
         else
           echo "⚠️ Build failed. Please check the job logs for details." >> $GITHUB_STEP_SUMMARY

@@ -1,6 +1,6 @@
 # Software Manifest
 
-The MAUI Tart VM images include comprehensive software manifests similar to [GitHub Actions runner images](https://github.com/actions/runner-images), available in human-readable and machine-readable formats including industry-standard SBOM (Software Bill of Materials).
+The MAUI Tart VM images include comprehensive software manifests available in human-readable and machine-readable formats, including industry-standard SBOM (Software Bill of Materials).
 
 ## Formats
 
@@ -57,9 +57,6 @@ Standard paths and configuration for:
 - DOTNET_ROOT
 - ANDROID_HOME / ANDROID_SDK_ROOT
 - JAVA_HOME
-
-### CI/CD Runner Support
-Information about GitHub Actions and Gitea Actions runner capabilities
 
 ### Build Information
 - Base image details
@@ -128,7 +125,7 @@ tart clone ghcr.io/maui-containers/maui-macos:tahoe-dotnet10.0 maui-dev-tahoe-do
 
 ## Format
 
-The manifest follows the same markdown structure as GitHub Actions runner images:
+The manifest follows a predictable markdown structure:
 
 1. **Operating System** - Version and build info
 2. **Xcode** - All versions and SDKs
@@ -140,8 +137,7 @@ The manifest follows the same markdown structure as GitHub Actions runner images
 8. **Homebrew Packages** - Complete list (expandable section)
 9. **iOS Simulators** - Available device types (expandable section)
 10. **Environment Variables** - Standard paths
-11. **CI/CD Runner Support** - Configuration info
-12. **Build Information** - Detailed build metadata (expandable section)
+11. **Build Information** - Detailed build metadata (expandable section)
 
 ## Use Cases
 
@@ -324,16 +320,6 @@ The JSON manifest follows this schema:
     "DOTNET_ROOT": "/Users/admin/.dotnet",
     "ANDROID_HOME": "~/Library/Android/sdk"
   },
-  "ciRunners": {
-    "githubActions": {
-      "scriptPath": "/Users/admin/actions-runner/maui-runner.sh",
-      "autoStart": true
-    },
-    "giteaActions": {
-      "scriptPath": "/Users/admin/gitea-runner/gitea-runner.sh",
-      "autoStart": true
-    }
-  },
   "buildInfo": { /* contents of build-info.json */ }
 }
 ```
@@ -499,13 +485,12 @@ Unlike GitHub's runners:
 - Dual industry-standard SBOM formats (SPDX 2.3 and CycloneDX 1.6) for supply chain security
 - We focus on MAUI/.NET development tools
 - We include Tart/VM-specific information
-- We document multiple CI runner support (GitHub + Gitea)
 
 ## Standard Compliance
 
 The manifests follow multiple industry standards:
 
-- **GitHub Actions Compatibility**: Markdown and JSON formats follow the de facto standard established by GitHub Actions runner-images project
+- **Readable inventory**: Markdown and JSON formats provide a stable inventory of installed tools and versions
 - **SPDX 2.3 / ISO/IEC 5962:2021**: ISO-certified Software Bill of Materials format, ideal for compliance-focused organizations and government requirements
 - **CycloneDX 1.6 / ECMA-424**: OWASP/ECMA-standardized SBOM format, optimized for DevSecOps workflows and security tooling
 - **Supply Chain Security**: Meets requirements for software transparency (e.g., US Executive Order 14028)
@@ -538,7 +523,6 @@ The generation scripts are located at:
 - **Software Manifest (SPDX 2.3)**: `/usr/local/share/installed-software.spdx.json` (symlink: `~/installed-software.spdx.json`)
 - **Software Manifest (CycloneDX 1.6)**: `/usr/local/share/installed-software.cdx.json` (symlink: `~/installed-software.cdx.json`)
 - **Build Info**: `/usr/local/share/build-info.json` (machine-readable JSON)
-- **Runner Setup**: See `RUNNER-SETUP.md` in repository for CI/CD configuration
 
 ## Contributing
 

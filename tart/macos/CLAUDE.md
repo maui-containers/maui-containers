@@ -35,22 +35,6 @@ pwsh ./scripts/test.ps1 -ImageName maui-dev-tahoe-dotnet10.0 -TestType maui
 pwsh ./scripts/test.ps1 -ImageName maui-dev-tahoe-dotnet9.0 -TestType maui
 ```
 
-### Runner Auto-registration
-
-**GitHub Actions Runner:**
-```powershell
-$env:GITHUB_ORG = 'your-org'
-$env:GITHUB_TOKEN = 'ghp_xxx'
-tart run maui-dev-tahoe-dotnet10.0
-```
-
-**Gitea Actions Runner:**
-```powershell
-$env:GITEA_INSTANCE_URL = 'https://gitea.example.com'
-$env:GITEA_RUNNER_TOKEN = 'your-registration-token'
-tart run maui-dev-tahoe-dotnet10.0
-```
-
 ### VM Management
 ```bash
 # Run VM with project directory mounted
@@ -95,8 +79,6 @@ MAUI Development Image (maui.pkr.hcl)
     - Xcode tooling + iOS simulators
     - Android SDK + development tools
     - VS Code + development utilities
-    - GitHub Actions runner helper script (auto-registration via env vars)
-    - Gitea Actions runner helper script (auto-registration via env vars)
 ```
 
 ### Configuration System
@@ -116,7 +98,7 @@ MAUI Development Image (maui.pkr.hcl)
 ### Key Components
 
 1. **Packer Templates** (`templates/`):
-   - `maui.pkr.hcl`: Base MAUI development environment with optional GitHub runner bootstrap
+   - `maui.pkr.hcl`: Base MAUI development environment with optional startup initialization
 
 2. **Build Scripts** (`scripts/`):
    - `build.ps1`: Main build orchestration with platform matrix resolution
@@ -182,27 +164,7 @@ tart run maui-dev-tahoe-dotnet10.0 --dir myproject:/path/to/project
 # 4. Build and test as normal
 ```
 
-### CI/CD Integration
-
-**GitHub Actions:**
-```bash
-# Use in CI pipeline (set env vars to auto-register runner)
-export GITHUB_ORG=your-org
-export GITHUB_TOKEN=ghp_xxx
-tart run maui-dev-tahoe-dotnet10.0
-```
-
-**Gitea Actions:**
-```bash
-# Use in CI pipeline (set env vars to auto-register runner)
-export GITEA_INSTANCE_URL=https://gitea.example.com
-export GITEA_RUNNER_TOKEN=your-registration-token
-export GITEA_RUNNER_NAME=maui-runner-1  # Optional, auto-generated if not set
-export GITEA_RUNNER_LABELS=macos,maui,arm64  # Optional, defaults shown
-tart run maui-dev-tahoe-dotnet10.0
-```
-
-**Publishing Images:**
+### Publishing Images
 ```bash
 # Publish to registry for reuse
 tart push maui-dev-tahoe-dotnet10.0 your-registry/maui-dev-tahoe-dotnet10.0:latest
@@ -266,54 +228,6 @@ Required tools (checked by `quick-start.ps1`):
 - Uses same .NET workload resolution logic as Docker builds
 - Shares configuration patterns with container build system
 - VM images can be used alongside Docker containers for hybrid workflows
-
-## CI Runner Configuration
-
-### GitHub Actions Runner
-
-The VM includes a GitHub Actions runner helper script at `/Users/admin/actions-runner/maui-runner.sh` that auto-registers when environment variables are set.
-
-**Required Environment Variables:**
-- `GITHUB_ORG` - GitHub organization name
-- `GITHUB_TOKEN` - GitHub personal access token with runner registration permissions
-
-**Optional Environment Variables:**
-- `GITHUB_REPO` - Repository name (if not set, registers as org-level runner)
-- `RUNNER_NAME` - Custom runner name (auto-generated if not set)
-- `RUNNER_NAME_PREFIX` - Prefix for auto-generated names (default: "github-runner")
-- `RANDOM_RUNNER_SUFFIX` - Add random suffix to name (default: "true")
-- `RUNNER_WORKDIR` - Work directory for runner
-- `RUNNER_GROUP` - Runner group (default: "Default")
-- `LABELS` - Custom labels (default: "default")
-- `EPHEMERAL` - Enable ephemeral mode (runner deleted after one job)
-- `DISABLE_AUTO_UPDATE` - Disable automatic runner updates
-- `NO_DEFAULT_LABELS` - Remove default labels
-- `INIT_PWSH_SCRIPT` - PowerShell script to run before registration
-- `INIT_BASH_SCRIPT` - Bash script to run before registration
-
-### Gitea Actions Runner
-
-The VM includes a Gitea Actions runner (act_runner) at `/Users/admin/gitea-runner/gitea-runner.sh` that auto-registers when environment variables are set.
-
-**Required Environment Variables:**
-- `GITEA_INSTANCE_URL` - Gitea instance URL (e.g., "https://gitea.example.com")
-- `GITEA_RUNNER_TOKEN` - Runner registration token from Gitea
-
-**Optional Environment Variables:**
-- `GITEA_RUNNER_NAME` - Custom runner name (auto-generated if not set)
-- `GITEA_RUNNER_NAME_PREFIX` - Prefix for auto-generated names (default: "gitea-runner")
-- `GITEA_RUNNER_LABELS` - Comma-separated labels (default: "macos,maui,arm64")
-- `GITEA_RUNNER_ROOT` - Runner installation directory (default: "/Users/admin/gitea-runner")
-- `RANDOM_RUNNER_SUFFIX` - Add random suffix to name (default: "true")
-- `GITEA_RUNNER_NO_INTERACTIVE` - Disable interactive prompts during registration
-- `INIT_PWSH_SCRIPT` - PowerShell script to run before registration
-- `INIT_BASH_SCRIPT` - Bash script to run before registration
-
-**Getting a Gitea Runner Token:**
-```bash
-# In Gitea UI: Settings → Actions → Runners → Create New Runner
-# Or use Gitea CLI/API to generate a registration token
-```
 
 ## Common Parameters
 

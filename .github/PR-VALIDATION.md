@@ -12,7 +12,6 @@ The workflow triggers automatically on:
 - Pull requests targeting the `main` branch
 - Changes to relevant files:
   - `base/**` - Base image files
-  - `runner/**` - Runner image files  
   - `test/**` - Test image files
   - `common-functions.ps1` - Workload management functions
   - `.github/workflows/**` - Workflow files
@@ -32,12 +31,11 @@ You can also run it manually using the `workflow_dispatch` trigger.
 - Supports three test modes:
   - **`single-platform`**: Fastest - builds one .NET version on Linux base only
   - **`base-only`**: Medium - builds base images for all .NET versions and platforms
-  - **`all`**: Comprehensive - builds base, runner, and test images (slower)
-- Runs builds in parallel with resource limits to avoid overloading runners
+  - **`all`**: Comprehensive - builds base and test images (slower)
+- Runs builds in parallel with resource limits to avoid overloading build hosts
 
 ### 3. Image Validation Tests 🧪
 - **Base Images**: Tests .NET version, MAUI workloads, PowerShell, Android SDK, Java
-- **Runner Images**: Validates GitHub Actions runner installation
 - **Test Images**: Checks Appium, Android Emulator, and system images
 
 ### 4. Summary Report 📋
@@ -77,7 +75,7 @@ You can manually run the validation with different options:
 - **Windows builds** are slower than Linux builds
 - **Test images** take longest due to Android Emulator setup
 - **Parallel builds** are limited to 4 concurrent jobs
-- Use **`base-only`** mode for most PRs unless testing runner/test image changes
+- Use **`base-only`** mode for most PRs unless testing test image changes
 
 ## Troubleshooting
 
@@ -94,10 +92,6 @@ You can manually run the validation with different options:
 3. **"MAUI workload may not be installed"**
    - Workload installation failed during image build
    - Check workload installation steps in Dockerfile
-
-4. **"Runner script not found"**
-   - GitHub Actions runner installation failed
-   - Verify runner download and extraction steps
 
 ### Getting Help
 

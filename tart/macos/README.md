@@ -72,22 +72,13 @@ tart run maui-dev-sequoia
 pwsh ./scripts/test.ps1 -ImageName maui-dev-sequoia -TestType maui
 ```
 
-### 5. (Optional) Auto-register GitHub Actions runner
-When launching the VM, provide the same environment variables used by our Docker runner to trigger `/Users/admin/actions-runner/maui-runner.sh`:
-```bash
-GITHUB_ORG=your-org \
-GITHUB_TOKEN=ghp_xxx \
-tart run maui-dev-sequoia
-```
-Add `GITHUB_REPO`, `RUNNER_NAME`, or other runner flags as needed.
-
 ## Image Types
 
 ### MAUI Development Image (`maui.pkr.hcl`)
 - Built directly on Cirrus Labs `macos-<version>-xcode:<tag>` VMs
 - Installs .NET SDK and MAUI workloads
 - Adds Xcode tooling, iOS simulators, Android SDK, and VS Code
-- Ships `/Users/admin/actions-runner/maui-runner.sh` for on-demand GitHub Actions registration driven by environment variables
+- Runs a mounted `config/init.sh` at startup for custom post-start setup
 
 ## Configuration
 
@@ -128,7 +119,7 @@ task:
 1. **Version Pinning**: Pin specific versions in templates
 2. **Resource Management**: Allocate appropriate CPU/memory
 3. **Directory Mounting**: Use `--dir` for project access
-4. **Runner Configuration**: Export `GITHUB_ORG` and `GITHUB_TOKEN` before launching to auto-configure the bundled runner when needed
+4. **Post-start Customization**: Mount a `config/init.sh` script for project-specific setup
 5. **SSH Access**: Configure for automation and debugging
 6. **Image Registry**: Push to container registry for sharing
 

@@ -2,12 +2,12 @@
 
 ## Project Structure & Module Organization
 - `docker/` hosts Docker container images organized by platform
-  - `docker/linux/` - Linux MAUI development images with integrated runner support
-  - `docker/windows/` - Windows MAUI development images with integrated runner support
+  - `docker/linux/` - Linux MAUI development images
+  - `docker/windows/` - Windows MAUI development images
   - `docker/test/` - Appium-enabled Android emulator images (Linux only)
   - `docker/build.ps1` - Unified cross-platform build script
 - `tart/` hosts macOS VM images
-  - `tart/macos/` - macOS MAUI development VMs with integrated runner support
+  - `tart/macos/` - macOS MAUI development VMs
 - `provisioning/` contains shared provisioning scripts for all platforms
 - Shared PowerShell utilities sit in `common-functions.ps1`; transient build artifacts land in `_temp/`.
 
@@ -30,7 +30,7 @@
 ## Commit & Pull Request Guidelines
 - Write imperative commit subjects without trailing punctuation (e.g., "Update Android SDK cache").
 - Group related Dockerfile and script updates in the same commit and explain version bumps in the body.
-- Pull requests must list touched image families, required env vars (e.g., `GITHUB_TOKEN`, `RUNNER_NAME`), and include relevant build or runtime logs.
+- Pull requests must list touched image families, required env vars, and include relevant build or runtime logs.
 
 ## Security & Configuration Tips
 - Do not bake credentials into images; supply secrets at runtime via `--env-file` or mounted configuration.

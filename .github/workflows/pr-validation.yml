@@ -137,7 +137,6 @@ jobs:
             [string]$DotnetVersion,
             [string]$Platform,
             [string]$RunnerOs,
-            [string]$BuildRunner = 'false',
             [string]$BuildTest = 'false',
             [string]$AndroidApiLevel = ''
           )
@@ -146,7 +145,6 @@ jobs:
             dotnet_version = $DotnetVersion
             platform       = $Platform
             runner_os      = $RunnerOs
-            build_runner   = $BuildRunner
             build_test     = $BuildTest
           }
 
@@ -373,49 +371,49 @@ jobs:
           }
         }
 
-    - name: 🧪 Test runner functionality
+    - name: 🧪 Verify runner functionality is absent
       shell: pwsh
       run: |
         # Construct image name
         $imageName = "${{ env.DOCKER_REPOSITORY_BASE }}:dotnet${{ matrix.dotnet_version }}-pr-test"
 
-        Write-Host "Testing runner functionality: $imageName"
+        Write-Host "Verifying runner functionality is absent: $imageName"
 
         if ("${{ matrix.platform }}" -eq "linux") {
-          # Test that GitHub Actions runner files are present
-          $githubRunnerScript = docker run --rm $imageName bash -c 'ls /home/mauiusr/actions-runner/run.sh 2>/dev/null && echo "found" || echo "not found"'
-          if ($githubRunnerScript -eq "found") {
-            Write-Host "✅ GitHub Actions runner found"
+          # Test that GitHub Actions runner files are not present
+          $githubRunnerScript = docker run --rm $imageName bash -c 'test -e /home/mauiusr/actions-runner/run.sh && echo "found" || echo "not found"'
+          if ($githubRunnerScript -eq "not found") {
+            Write-Host "✅ GitHub Actions runner not present"
           } else {
-            Write-Error "❌ GitHub Actions runner script not found"
+            Write-Error "❌ GitHub Actions runner script should not be present"
             exit 1
           }
 
-          # Test that Gitea runner files are present
-          $giteaRunnerBinary = docker run --rm $imageName bash -c 'ls /home/mauiusr/gitea-runner/act_runner 2>/dev/null && echo "found" || echo "not found"'
-          if ($giteaRunnerBinary -eq "found") {
-            Write-Host "✅ Gitea Actions runner found"
+          # Test that Gitea runner files are not present
+          $giteaRunnerBinary = docker run --rm $imageName bash -c 'test -e /home/mauiusr/gitea-runner/act_runner && echo "found" || echo "not found"'
+          if ($giteaRunnerBinary -eq "not found") {
+            Write-Host "✅ Gitea Actions runner not present"
           } else {
-            Write-Error "❌ Gitea Actions runner binary not found"
+            Write-Error "❌ Gitea Actions runner binary should not be present"
             exit 1
           }
         }
         elseif ("${{ matrix.platform }}" -eq "windows") {
-          # Test that GitHub Actions runner files are present (Windows)
+          # Test that GitHub Actions runner files are not present (Windows)
           $githubRunnerScript = docker run --rm $imageName powershell -c "if (Test-Path 'C:\actions-runner\run.cmd') { Write-Output 'found' } else { Write-Output 'not found' }"
-          if ($githubRunnerScript -match "found") {
-            Write-Host "✅ GitHub Actions runner found"
+          if ($githubRunnerScript -match "not found") {
+            Write-Host "✅ GitHub Actions runner not present"
           } else {
-            Write-Error "❌ GitHub Actions runner script not found"
+            Write-Error "❌ GitHub Actions runner script should not be present"
             exit 1
           }
 
-          # Test that Gitea runner files are present (Windows)
+          # Test that Gitea runner files are not present (Windows)
           $giteaRunnerBinary = docker run --rm $imageName powershell -c "if (Test-Path 'C:\gitea-runner\act_runner.exe') { Write-Output 'found' } else { Write-Output 'not found' }"
-          if ($giteaRunnerBinary -match "found") {
-            Write-Host "✅ Gitea Actions runner found"
+          if ($giteaRunnerBinary -match "not found") {
+            Write-Host "✅ Gitea Actions runner not present"
           } else {
-            Write-Error "❌ Gitea Actions runner binary not found"
+            Write-Error "❌ Gitea Actions runner binary should not be present"
             exit 1
           }
         }

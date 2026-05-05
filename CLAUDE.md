@@ -7,22 +7,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 This repository provides development environments for .NET MAUI across multiple platforms:
 
 1. **Docker Images** (`docker/`) - Container images for Linux and Windows
-   - `docker/linux/` - Linux MAUI development images with integrated runner support
-   - `docker/windows/` - Windows MAUI development images with integrated runner support
+   - `docker/linux/` - Linux MAUI development images
+   - `docker/windows/` - Windows MAUI development images
    - `docker/test/` - Testing environment with Appium and Android Emulator (Linux only)
-2. **Tart VM Images** (`tart/macos/`) - macOS virtual machine images with integrated runner support
+2. **Tart VM Images** (`tart/macos/`) - macOS virtual machine images
 3. **Provisioning Module** (`provisioning/`) - PowerShell module for provisioning native macOS hosts
-
-All images support both GitHub Actions and Gitea Actions runners through conditional startup based on environment variables.
 
 ## Build Commands
 
 ### Building Docker Images
 ```powershell
-# Linux image with integrated runner support
+# Linux image
 ./docker/build.ps1 -DockerPlatform "linux/amd64" -DotnetVersion "9.0" -DockerRepository "your-repo/maui-build"
 
-# Windows image with integrated runner support
+# Windows image
 ./docker/build.ps1 -DockerPlatform "windows/amd64" -DotnetVersion "9.0" -DockerRepository "your-repo/maui-build"
 
 # Individual platform build scripts are also available
@@ -72,16 +70,14 @@ Key functions:
 
 ### Docker Image Hierarchy
 ```
-Docker Base Image (MAUI Dev + Integrated Runners)
+Docker Base Image (MAUI Dev)
     ↓
 Test Image (Base + Appium + Android Emulator)
 ```
 
-All Docker images now include integrated GitHub Actions and Gitea Actions runner support. Runners start conditionally based on environment variables.
-
 ### Platform Support
 - **Linux**: `linux/amd64` - Full support for all image types
-- **Windows**: `windows/amd64` - Base and Runner images only (Test images Linux-only)
+- **Windows**: `windows/amd64` - Base images only (Test images Linux-only)
 
 ### .NET Version Support
 - **.NET 8**: Stable release workloads (8.414.0)
@@ -98,8 +94,8 @@ The build system:
 ### GitHub Actions Integration
 Comprehensive CI/CD workflows in `.github/workflows/`:
 - `check-workload-updates.yml` - Monitors for workload updates and triggers builds
-- `build-docker-linux.yml` - Builds Linux Docker images with integrated runners
-- `build-docker-windows.yml` - Builds Windows Docker images with integrated runners
+- `build-docker-linux.yml` - Builds Linux Docker images
+- `build-docker-windows.yml` - Builds Windows Docker images
 - `build-emulators.yml` - Builds Android emulator images for multiple API levels
 - `build-tart-vms.yml` - Builds macOS Tart VM images
 - `pr-validation.yml` - Validates PRs with test builds
@@ -133,35 +129,9 @@ The repository includes a dedicated PR validation workflow (`pr-validation.yml`)
 
 ## Key Environment Variables
 
-All images support integrated runner functionality. Provide credentials for GitHub Actions, Gitea Actions, or both:
-
-### GitHub Actions Runner Variables:
-- `GITHUB_TOKEN` - Required for runner registration
-- `GITHUB_ORG` - GitHub organization
-- `GITHUB_REPO` - Repository name (optional, defaults to org-level)
-- `RUNNER_NAME` - Custom runner name
-- `RUNNER_NAME_PREFIX` - Prefix for auto-generated runner names (default: "maui-runner")
-- `RANDOM_RUNNER_SUFFIX` - Add random suffix to runner name (default: "true")
-- `RUNNER_WORKDIR` - Runner work directory
-- `RUNNER_GROUP` - Runner group (default: "Default")
-- `LABELS` - Custom labels for the runner
-- `EPHEMERAL` - Enable ephemeral mode (runner deleted after one job)
-- `DISABLE_AUTO_UPDATE` - Disable automatic runner updates
-- `NO_DEFAULT_LABELS` - Remove default labels
-
-### Gitea Actions Runner Variables:
-- `GITEA_INSTANCE_URL` - Required - Gitea instance URL (e.g., "https://gitea.example.com")
-- `GITEA_RUNNER_TOKEN` - Required - Runner registration token from Gitea
-- `GITEA_RUNNER_NAME` - Custom runner name (auto-generated if not set)
-- `GITEA_RUNNER_NAME_PREFIX` - Prefix for auto-generated runner names (default: "gitea-runner")
-- `RANDOM_RUNNER_SUFFIX` - Add random suffix to runner name (default: "true")
-- `GITEA_RUNNER_LABELS` - Comma-separated labels (default: "maui,linux,amd64" or "maui,windows,amd64")
-
 ### Common Initialization Variables:
 - `INIT_PWSH_SCRIPT` - Custom PowerShell initialization script
 - `INIT_BASH_SCRIPT` - Custom bash initialization script (Linux only)
-
-**Note**: If no runner credentials are provided, the image starts as a development environment without runners.
 
 For test images:
 - Android emulator and Appium are pre-configured and auto-started

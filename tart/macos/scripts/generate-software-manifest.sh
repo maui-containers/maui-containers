@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Script to generate software manifest for MAUI Tart VM images
-# Follows the format used by GitHub Actions runner-images
+# Generates a stable inventory of installed tools and versions
 
 OUTPUT_FILE="${1:-/usr/local/share/installed-software.md}"
 TEMP_FILE=$(mktemp)
@@ -251,27 +251,6 @@ Key environment variables configured for development:
 | ANDROID_HOME | ~/Library/Android/sdk |
 | ANDROID_SDK_ROOT | ~/Library/Android/sdk |
 | JAVA_HOME | (set by Xcode) |
-
-EOF
-
-# CI Runner Support
-cat >> "${TEMP_FILE}" << 'EOF'
-## CI/CD Runner Support
-
-This image includes support for auto-registering and running CI/CD runners:
-
-### GitHub Actions Runner
-- **Script:** `/Users/admin/actions-runner/maui-runner.sh`
-- **Auto-start:** LaunchAgent with .env configuration
-- **Configuration:** Mount `.env` file with `GITHUB_ORG` and `GITHUB_TOKEN`
-
-### Gitea Actions Runner
-- **Binary:** `/Users/admin/gitea-runner/act_runner`
-- **Script:** `/Users/admin/gitea-runner/gitea-runner.sh`
-- **Auto-start:** LaunchAgent with .env configuration
-- **Configuration:** Mount `.env` file with `GITEA_INSTANCE_URL` and `GITEA_RUNNER_TOKEN`
-
-See [RUNNER-SETUP.md](RUNNER-SETUP.md) for detailed configuration instructions.
 
 EOF
 

@@ -1,5 +1,5 @@
 # Entrypoint script for MAUI Windows container
-# Starts runners in background, then executes the CMD
+# Runs initialization hooks, then executes the CMD
 
 $ErrorActionPreference = 'Stop'
 
@@ -11,12 +11,6 @@ if (Test-Path $env:INIT_PWSH_SCRIPT) {
     Write-Host "Running custom PowerShell init script: $($env:INIT_PWSH_SCRIPT)"
     & $env:INIT_PWSH_SCRIPT
 }
-
-# Start runner script in background job
-Write-Host "Starting runner management in background..."
-Start-Job -ScriptBlock {
-    & C:\runner.ps1
-} | Out-Null
 
 # Execute whatever CMD was provided (or default)
 Write-Host "Executing CMD: $args"

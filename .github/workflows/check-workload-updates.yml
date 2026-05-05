@@ -263,10 +263,10 @@ jobs:
 
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Triggered Workflows:" >> $GITHUB_STEP_SUMMARY
-          echo "1. **Docker Linux Images** - Includes integrated GitHub/Gitea runner support" >> $GITHUB_STEP_SUMMARY
-          echo "2. **Docker Windows Images** - Includes integrated GitHub/Gitea runner support" >> $GITHUB_STEP_SUMMARY
+          echo "1. **Docker Linux Images** - MAUI development containers" >> $GITHUB_STEP_SUMMARY
+          echo "2. **Docker Windows Images** - MAUI development containers" >> $GITHUB_STEP_SUMMARY
           echo "3. **Emulator Images** (Linux) - Android emulator with Appium" >> $GITHUB_STEP_SUMMARY
-          echo "4. **Tart VM Images** (macOS) - MAUI development VMs with integrated runners" >> $GITHUB_STEP_SUMMARY
+          echo "4. **Tart VM Images** (macOS) - MAUI development VMs" >> $GITHUB_STEP_SUMMARY
         else
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "ℹ️ **No new workload set versions found.** All builds are up to date." >> $GITHUB_STEP_SUMMARY
