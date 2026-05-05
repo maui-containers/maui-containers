@@ -187,7 +187,7 @@ pwsh ./macos/tart/scripts/build.ps1 \
   -DotnetChannel 10.0 \
   -CPUCount 8 \
   -MemoryGB 16 \
-  -DiskSizeGB 100
+  -DiskSizeGB 160
 ```
 
 ### Running VMs
