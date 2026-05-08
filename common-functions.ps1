@@ -1571,27 +1571,4 @@ function Get-LatestAppiumVersions {
     }
 }
 
-function Get-LatestGitHubActionsRunnerVersion {
-    Write-Host "Getting latest GitHub Actions runner version..."
-
-    try {
-        $apiUrl = "https://api.github.com/repos/actions/runner/releases/latest"
-        $response = Invoke-RestMethod -Uri $apiUrl -Method Get -Headers @{
-            "Accept" = "application/vnd.github+json"
-            "User-Agent" = "maui-containers-build-script"
-        }
-
-        # Extract version number (remove 'v' prefix if present)
-        $version = $response.tag_name -replace '^v', ''
-        Write-Host "Found latest GitHub Actions runner version: $version"
-
-        return $version
-    }
-    catch {
-        Write-Warning "Failed to get latest GitHub Actions runner version: $_"
-        Write-Warning "Falling back to default version: 2.323.0"
-        return "2.323.0"
-    }
-}
-
 #Get-NuGetPackageContent -PackageId 'Microsoft.NET.Workloads.9.0.300' -Version '9.301.1' -FilePath 'data/WorkloadManifest.json' 

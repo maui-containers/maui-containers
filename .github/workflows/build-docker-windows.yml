@@ -126,7 +126,6 @@ jobs:
         | Android Build Tools | ${{ steps.build.outputs.android_build_tools || '—' }} |
         | Android Cmdline Tools | ${{ steps.build.outputs.android_cmdline_tools || '—' }} |
         | JDK | ${{ steps.build.outputs.jdk_version || '—' }} |
-        | GitHub Actions Runner | ${{ steps.build.outputs.github_actions_runner || '—' }} |
         | Platform | ${{ steps.build.outputs.docker_platform || 'windows/amd64' }} |
         | Build SHA | ``${{ steps.vars.outputs.build_sha }}`` |
 
