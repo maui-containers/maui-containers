@@ -15,14 +15,32 @@ fi
 echo "Detected architecture: ${ARCH} (downloading ${DOWNLOAD_ARCH})"
 
 # Get latest release and extract the correct download URL from assets
-curl -fsSL https://gitea.com/api/v1/repos/gitea/act_runner/releases -o /tmp/releases.json
-LATEST_VERSION=$(jq -r '.[0].tag_name' /tmp/releases.json)
+RELEASES_FILE=$(mktemp)
+trap 'rm -f "${RELEASES_FILE}"' EXIT
+curl -fsSL https://gitea.com/api/v1/repos/gitea/act_runner/releases -o "${RELEASES_FILE}"
+LATEST_VERSION=$(jq -r '.[0].tag_name' "${RELEASES_FILE}")
 # Remove 'v' prefix from version for filename matching
 VERSION_NO_V=$(echo "${LATEST_VERSION}" | sed 's/^v//')
-# Find the matching asset by name
-DOWNLOAD_URL=$(jq -r ".[0].assets[] | select(.name == \"act_runner-${VERSION_NO_V}-darwin-${DOWNLOAD_ARCH}\") | .browser_download_url" /tmp/releases.json)
-rm -f /tmp/releases.json
-echo "Latest act_runner version: ${LATEST_VERSION}"
+
+PREFERRED_ASSET="gitea-runner-${VERSION_NO_V}-darwin-${DOWNLOAD_ARCH}"
+LEGACY_ASSET="act_runner-${VERSION_NO_V}-darwin-${DOWNLOAD_ARCH}"
+
+if ! DOWNLOAD_INFO=$(jq -er \
+  --arg preferred "${PREFERRED_ASSET}" \
+  --arg legacy "${LEGACY_ASSET}" \
+  '.[0].assets // [] | map(select(.name == $preferred or .name == $legacy)) | .[0] | select(. != null and .browser_download_url != null and .browser_download_url != "") | [.name, .browser_download_url] | @tsv' \
+  "${RELEASES_FILE}"); then
+  echo "Could not find a darwin ${DOWNLOAD_ARCH} runner asset named '${PREFERRED_ASSET}' or '${LEGACY_ASSET}'." >&2
+  echo "Available assets:" >&2
+  jq -r '.[0].assets[]?.name | "  - \(.)"' "${RELEASES_FILE}" >&2
+  exit 1
+fi
+
+DOWNLOAD_ASSET=${DOWNLOAD_INFO%%$'\t'*}
+DOWNLOAD_URL=${DOWNLOAD_INFO#*$'\t'}
+
+echo "Latest Gitea runner version: ${LATEST_VERSION}"
+echo "Downloading asset: ${DOWNLOAD_ASSET}"
 echo "Downloading from: ${DOWNLOAD_URL}"
 curl -fsSL "${DOWNLOAD_URL}" -o act_runner
 chmod +x act_runner

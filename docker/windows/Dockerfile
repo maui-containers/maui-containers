@@ -163,9 +163,11 @@ WORKDIR C:/gitea-runner
 RUN $releases = Invoke-RestMethod -Uri 'https://gitea.com/api/v1/repos/gitea/act_runner/releases' ; \
     $latestVersion = $releases[0].tag_name ; \
     $versionNoPrefix = if ($latestVersion.StartsWith('v')) { $latestVersion.Substring(1) } else { $latestVersion } ; \
-    Write-Host \"Downloading act_runner version: $latestVersion\" ; \
-    $downloadUrl = \"https://gitea.com/gitea/act_runner/releases/download/$latestVersion/act_runner-$versionNoPrefix-windows-amd64.exe\" ; \
-    Invoke-WebRequest -Uri $downloadUrl -OutFile act_runner.exe
+    $assetNames = @(('gitea-runner-' + $versionNoPrefix + '-windows-amd64.exe'), ('act_runner-' + $versionNoPrefix + '-windows-amd64.exe')) ; \
+    $asset = $releases[0].assets | Where-Object { $assetNames -contains $_.name } | Select-Object -First 1 ; \
+    if (-not $asset -or -not $asset.browser_download_url) { throw ('Could not find a Windows amd64 Gitea runner asset. Expected one of: ' + ($assetNames -join ', ')) } ; \
+    Write-Host ('Downloading Gitea runner version: ' + $latestVersion + ' (' + $asset.name + ')') ; \
+    Invoke-WebRequest -Uri $asset.browser_download_url -OutFile act_runner.exe
 
 # Return to root
 WORKDIR C:/

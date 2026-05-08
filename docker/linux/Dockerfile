@@ -207,10 +207,16 @@ RUN rm -rf ./actions-runner-linux.tar.gz
 WORKDIR /home/mauiusr
 RUN mkdir gitea-runner
 WORKDIR /home/mauiusr/gitea-runner
-RUN LATEST_VERSION=$(curl -fsSL https://gitea.com/api/v1/repos/gitea/act_runner/releases | jq -r '.[0].tag_name') && \
+RUN RELEASES_FILE=$(mktemp) && \
+    curl -fsSL https://gitea.com/api/v1/repos/gitea/act_runner/releases -o "${RELEASES_FILE}" && \
+    LATEST_VERSION=$(jq -r '.[0].tag_name' "${RELEASES_FILE}") && \
     VERSION_NO_PREFIX=${LATEST_VERSION#v} && \
-    DOWNLOAD_URL="https://gitea.com/gitea/act_runner/releases/download/${LATEST_VERSION}/act_runner-${VERSION_NO_PREFIX}-linux-amd64" && \
-    echo "Downloading act_runner version: ${LATEST_VERSION} from ${DOWNLOAD_URL}" && \
+    PREFERRED_ASSET="gitea-runner-${VERSION_NO_PREFIX}-linux-amd64" && \
+    LEGACY_ASSET="act_runner-${VERSION_NO_PREFIX}-linux-amd64" && \
+    DOWNLOAD_ASSET=$(jq -er --arg preferred "${PREFERRED_ASSET}" --arg legacy "${LEGACY_ASSET}" '.[0].assets // [] | map(select(.name == $preferred or .name == $legacy)) | .[0].name // empty' "${RELEASES_FILE}") && \
+    DOWNLOAD_URL=$(jq -er --arg asset "${DOWNLOAD_ASSET}" '.[0].assets[] | select(.name == $asset) | .browser_download_url' "${RELEASES_FILE}") && \
+    rm -f "${RELEASES_FILE}" && \
+    echo "Downloading Gitea runner version: ${LATEST_VERSION} (${DOWNLOAD_ASSET}) from ${DOWNLOAD_URL}" && \
     curl -fsSL "${DOWNLOAD_URL}" -o /home/mauiusr/gitea-runner/act_runner && \
     chmod +x /home/mauiusr/gitea-runner/act_runner
 
