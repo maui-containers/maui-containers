@@ -12,7 +12,6 @@ ARG ANDROID_SDK_API_LEVEL=35
 ARG ANDROID_SDK_BUILD_TOOLS_VERSION=33.0.3
 ARG ANDROID_SDK_CMDLINE_TOOLS_VERSION=13.0
 ARG DOTNET_WORKLOADS_VERSION=9.0.203
-ARG GITHUB_ACTIONS_RUNNER_VERSION=2.323.0
 
 ENV JDK_MAJOR_VERSION=${JDK_MAJOR_VERSION}
 ENV ANDROID_SDK_API_LEVEL=${ANDROID_SDK_API_LEVEL}
@@ -20,11 +19,10 @@ ENV ANDROID_SDK_BUILD_TOOLS_VERSION=${ANDROID_SDK_BUILD_TOOLS_VERSION}
 ENV ANDROID_SDK_CMDLINE_TOOLS_VERSION=${ANDROID_SDK_CMDLINE_TOOLS_VERSION}
 ENV DOTNET_VERSION=${DOTNET_VERSION}
 ENV DOTNET_WORKLOADS_VERSION=${DOTNET_WORKLOADS_VERSION}
-ENV GITHUB_ACTIONS_RUNNER_VERSION=${GITHUB_ACTIONS_RUNNER_VERSION}
 
 # OCI Image labels for registry metadata and discoverability
 LABEL org.opencontainers.image.title="MAUI Linux Development Container" \
-      org.opencontainers.image.description=".NET MAUI development environment for Linux with Android SDK, integrated GitHub Actions and Gitea Actions runner support" \
+      org.opencontainers.image.description=".NET MAUI development environment for Linux with Android SDK" \
       org.opencontainers.image.vendor="MAUI Containers" \
       org.opencontainers.image.source="https://github.com/maui-containers/maui-containers" \
       org.opencontainers.image.documentation="https://github.com/maui-containers/maui-containers/blob/main/README.md" \
@@ -35,31 +33,10 @@ LABEL org.opencontainers.image.title="MAUI Linux Development Container" \
       dev.maui-containers.android-api-level="${ANDROID_SDK_API_LEVEL}" \
       dev.maui-containers.android-build-tools="${ANDROID_SDK_BUILD_TOOLS_VERSION}" \
       dev.maui-containers.android-cmdline-tools="${ANDROID_SDK_CMDLINE_TOOLS_VERSION}" \
-      dev.maui-containers.jdk-version="${JDK_MAJOR_VERSION}" \
-      dev.maui-containers.github-actions-runner="${GITHUB_ACTIONS_RUNNER_VERSION}"
+      dev.maui-containers.jdk-version="${JDK_MAJOR_VERSION}"
 
 ENV INIT_PWSH_SCRIPT="/config/init.ps1"
 ENV INIT_BASH_SCRIPT="/config/init.sh"
-
-# GitHub Actions Runner environment variables
-ENV GITHUB_ORG=""
-ENV GITHUB_REPO=""
-ENV GITHUB_TOKEN=""
-ENV RUNNER_NAME_PREFIX="maui-runner"
-ENV RANDOM_RUNNER_SUFFIX=""
-ENV RUNNER_GROUP=""
-ENV RUNNER_WORKDIR=""
-ENV LABELS=""
-ENV DISABLE_AUTO_UPDATE=""
-ENV NO_DEFAULT_LABELS=""
-ENV EPHEMERAL=""
-
-# Gitea Actions Runner environment variables
-ENV GITEA_INSTANCE_URL=""
-ENV GITEA_RUNNER_TOKEN=""
-ENV GITEA_RUNNER_NAME=""
-ENV GITEA_RUNNER_NAME_PREFIX="gitea-runner"
-ENV GITEA_RUNNER_LABELS="maui,linux,amd64"
 
 # Set core environment variables
 ENV ANDROID_HOME=/home/mauiusr/android-sdk \
@@ -160,9 +137,8 @@ ENV PATH="/home/mauiusr/.dotnet/tools:${PATH}"
 # Set working directory
 WORKDIR /home/mauiusr
 
-# Copy the init script and runner script with correct ownership and permissions
+# Copy the init and entrypoint scripts with correct ownership and permissions
 COPY --chown=1400:1401 --chmod=755 scripts/init.sh /home/mauiusr/init.sh
-COPY --chown=1400:1401 --chmod=755 scripts/runner.sh /home/mauiusr/runner.sh
 COPY --chown=1400:1401 --chmod=755 scripts/entrypoint.sh /home/mauiusr/entrypoint.sh
 
 # Install and configure Android SDK
@@ -196,27 +172,9 @@ RUN /tmp/generate-software-manifest.json.sh /usr/local/share/installed-software.
 RUN /tmp/generate-software-manifest-spdx.sh /usr/local/share/installed-software.json /usr/local/share/installed-software.spdx.json || echo "SPDX manifest generation failed"
 RUN /tmp/generate-software-manifest-cyclonedx.sh /usr/local/share/installed-software.json /usr/local/share/installed-software.cdx.json || echo "CycloneDX manifest generation failed"
 
-# Install GitHub Actions Runner
-RUN mkdir actions-runner
-WORKDIR /home/mauiusr/actions-runner
-RUN curl -o actions-runner-linux.tar.gz -L https://github.com/actions/runner/releases/download/v${GITHUB_ACTIONS_RUNNER_VERSION}/actions-runner-linux-x64-${GITHUB_ACTIONS_RUNNER_VERSION}.tar.gz
-RUN tar xzf ./actions-runner-linux.tar.gz
-RUN rm -rf ./actions-runner-linux.tar.gz
-
-# Install Gitea Actions Runner
-WORKDIR /home/mauiusr
-RUN mkdir gitea-runner
-WORKDIR /home/mauiusr/gitea-runner
-RUN LATEST_VERSION=$(curl -fsSL https://gitea.com/api/v1/repos/gitea/act_runner/releases | jq -r '.[0].tag_name') && \
-    VERSION_NO_PREFIX=${LATEST_VERSION#v} && \
-    DOWNLOAD_URL="https://gitea.com/gitea/act_runner/releases/download/${LATEST_VERSION}/act_runner-${VERSION_NO_PREFIX}-linux-amd64" && \
-    echo "Downloading act_runner version: ${LATEST_VERSION} from ${DOWNLOAD_URL}" && \
-    curl -fsSL "${DOWNLOAD_URL}" -o /home/mauiusr/gitea-runner/act_runner && \
-    chmod +x /home/mauiusr/gitea-runner/act_runner
-
 # Return to home directory
 WORKDIR /home/mauiusr
 
-# Use ENTRYPOINT to start runners in background, CMD is user-overridable
+# Use ENTRYPOINT to run initialization hooks, CMD is user-overridable
 ENTRYPOINT ["/home/mauiusr/entrypoint.sh"]
 CMD ["tail", "-f", "/dev/null"]

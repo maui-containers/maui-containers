@@ -94,7 +94,6 @@ jobs:
         echo "| Android Build Tools | ${{ steps.build.outputs.android_build_tools || '—' }} |" >> $GITHUB_STEP_SUMMARY
         echo "| Android Cmdline Tools | ${{ steps.build.outputs.android_cmdline_tools || '—' }} |" >> $GITHUB_STEP_SUMMARY
         echo "| JDK | ${{ steps.build.outputs.jdk_version || '—' }} |" >> $GITHUB_STEP_SUMMARY
-        echo "| GitHub Actions Runner | ${{ steps.build.outputs.github_actions_runner || '—' }} |" >> $GITHUB_STEP_SUMMARY
         echo "| Platform | ${{ steps.build.outputs.docker_platform || 'linux/amd64' }} |" >> $GITHUB_STEP_SUMMARY
         echo "| Build SHA | \`${{ steps.vars.outputs.build_sha }}\` |" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY

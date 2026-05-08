@@ -6,10 +6,10 @@ This guide provides commands for building Docker images and Tart VM images local
 
 - [Prerequisites](#prerequisites)
 - [Docker Images](#docker-images)
-  - [Linux Images (with Integrated Runner Support)](#linux-images-with-integrated-runner-support)
-  - [Windows Images (with Integrated Runner Support)](#windows-images-with-integrated-runner-support)
+  - [Linux Images](#linux-images)
+  - [Windows Images](#windows-images)
   - [Test Images](#test-images)
-  - [Using Runners in Docker Images](#using-runners-in-docker-images)
+  - [Using Custom Startup Scripts](#using-custom-startup-scripts)
 - [Tart VM Images](#tart-vm-images)
   - [Building VMs](#building-vms)
   - [Running VMs](#running-vms)
@@ -44,7 +44,7 @@ This guide provides commands for building Docker images and Tart VM images local
 
 ## Docker Images
 
-### Linux Images (with Integrated Runner Support)
+### Linux Images
 
 #### .NET 9.0
 ```bash
@@ -81,7 +81,7 @@ pwsh ./docker/build.ps1 \
   -Load
 ```
 
-### Windows Images (with Integrated Runner Support)
+### Windows Images
 
 **Note:** Requires Windows with Docker Desktop set to Windows containers mode.
 
@@ -112,21 +112,19 @@ pwsh ./docker/test/build.ps1 \
 pwsh ./docker/test/run.ps1 -AndroidSdkApiLevel 35
 ```
 
-### Using Runners in Docker Images
+### Using Custom Startup Scripts
 
-All Docker images support both GitHub Actions and Gitea Actions runners through environment variables:
+Docker images run optional startup scripts before the container command:
 
-#### GitHub Actions Runner
+#### Bash init (Linux)
 ```bash
-docker run -e GITHUB_TOKEN=ghp_xxx -e GITHUB_ORG=your-org maui-build:latest
+docker run -it \
+  -v "$PWD/config:/config" \
+  -e INIT_BASH_SCRIPT=/config/init.sh \
+  maui-build:latest bash
 ```
 
-#### Gitea Actions Runner
-```bash
-docker run -e GITEA_INSTANCE_URL=https://gitea.example.com -e GITEA_RUNNER_TOKEN=your-token maui-build:latest
-```
-
-#### Development Mode (No Runners)
+#### Development Mode
 ```bash
 docker run -it maui-build:latest pwsh
 ```
@@ -194,7 +192,7 @@ pwsh ./macos/tart/scripts/build.ps1 \
 
 #### Basic Run
 ```bash
-# Start VM (with auto-registration if env vars set)
+# Start VM
 tart run maui-dev-tahoe-dotnet10.0
 
 # Start in background
@@ -218,24 +216,10 @@ tart ip maui-dev-tahoe-dotnet10.0
 ssh admin@$(tart ip maui-dev-tahoe-dotnet10.0)
 ```
 
-#### With GitHub Actions Runner Auto-Registration
+#### With Custom Startup Logic
 ```bash
-# Set environment variables for auto-registration
-export GITHUB_ORG='your-org'
-export GITHUB_TOKEN='ghp_xxx'
-
-# Run VM - runner will auto-register
-tart run maui-dev-tahoe-dotnet10.0
-```
-
-#### With Gitea Actions Runner Auto-Registration
-```bash
-# Set environment variables for auto-registration
-export GITEA_INSTANCE_URL='https://gitea.example.com'
-export GITEA_RUNNER_TOKEN='your-registration-token'
-
-# Run VM - runner will auto-register
-tart run maui-dev-tahoe-dotnet10.0
+# Mount a folder containing init.sh for your own bootstrap or runner setup
+tart run maui-dev-tahoe-dotnet10.0 --dir config:/path/to/config
 ```
 
 ### Testing VMs

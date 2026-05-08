@@ -3,17 +3,17 @@
 ## Repository Overview
 
 This repository provides development environments for .NET MAUI across multiple platforms:
-1. **Docker Images** (`docker/`) - Container images with integrated runner support
+1. **Docker Images** (`docker/`) - Container images
    - `docker/linux/` - Linux MAUI development images
    - `docker/windows/` - Windows MAUI development images  
    - `docker/test/` - Testing environment with Appium and Android Emulator (Linux only)
-2. **Tart VM Images** (`tart/macos/`) - macOS virtual machine images with integrated runner support
+2. **Tart VM Images** (`tart/macos/`) - macOS virtual machine images
 
 **Repository Size**: Small (~50 files)  
 **Languages**: PowerShell (primary), Dockerfile, YAML  
 **Platforms**: Linux (amd64), Windows (amd64)  
 **Target Runtimes**: .NET 9.0, Docker containers  
-**Published Images**: GitHub Container Registry (`maui-containers/maui-linux`, `maui-containers/maui-windows`, `maui-containers/maui-macos`, `maui-containers/maui-emulator-linux`, `maui-containers/maui-actions-runner-*`, `maui-containers/maui-gitea-runner-*`)
+**Published Images**: GitHub Container Registry (`maui-containers/maui-linux`, `maui-containers/maui-windows`, `maui-containers/maui-macos`, `maui-containers/maui-emulator-linux`)
 
 ## Build Instructions - CRITICAL REQUIREMENTS
 
@@ -79,21 +79,21 @@ pwsh ./docker/test/build.ps1 -AndroidSdkApiLevel 35 -DockerRepository "test/maui
 .github/workflows/     # CI/CD - builds triggered by schedule or dispatch
 docker/                # Docker container images
 ├── build.ps1          # Cross-platform Docker image builder
-├── linux/             # Linux MAUI images with integrated runner support
+├── linux/             # Linux MAUI images
 │   ├── build.ps1      # Linux-specific build script
 │   ├── Dockerfile     # Linux image definition
-│   └── scripts/       # Init and runner scripts
-├── windows/           # Windows MAUI images with integrated runner support
+│   └── scripts/       # Init scripts
+├── windows/           # Windows MAUI images
 │   ├── build.ps1      # Windows-specific build script
 │   ├── Dockerfile     # Windows image definition
-│   └── scripts/       # Init and runner scripts
+│   └── scripts/       # Init scripts
 └── test/              # Testing images with Appium + Android emulator
     ├── build.ps1      # Test image builder (Linux only)
     ├── run.ps1        # Container runner helper
     └── Dockerfile     # Test image definition
 tart/                  # Tart VM images
-└── macos/             # macOS MAUI VMs with integrated runner support
-    └── scripts/       # Bootstrap, runner, and management scripts
+└── macos/             # macOS MAUI VMs
+    └── scripts/       # Bootstrap and management scripts
 provisioning/          # PowerShell module for native macOS provisioning
 common-functions.ps1   # CRITICAL: Shared PowerShell functions
 check-workload-updates.ps1  # Automated version checking
@@ -109,7 +109,7 @@ check-workload-updates.ps1  # Automated version checking
 ```
 Microsoft .NET SDK Image
     ↓
-Docker Base Image (MAUI Dev + Integrated Runners)
+Docker Base Image (MAUI Dev)
     ↓
 Test Image (Base + Appium/Emulator)
 ```
@@ -124,8 +124,8 @@ Test Image (Base + Appium/Emulator)
 
 **Primary Workflows:**
 - `check-workload-updates.yml` - Automated version monitoring and build triggering
-- `build-docker-linux.yml` - Linux Docker images with integrated runners
-- `build-docker-windows.yml` - Windows Docker images with integrated runners
+- `build-docker-linux.yml` - Linux Docker images
+- `build-docker-windows.yml` - Windows Docker images
 - `build-emulators.yml` - Android emulator images (with Appium)
 - `build-tart-vms.yml` - macOS Tart VM images
 - `pr-validation.yml` - PR validation builds

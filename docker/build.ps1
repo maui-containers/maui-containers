@@ -47,9 +47,6 @@ if (-not $androidWorkload) {
     exit 1
 }
 
-# Get the latest GitHub Actions runner version
-$githubActionsRunnerVersion = Get-LatestGitHubActionsRunnerVersion
-
 # Extract Android details if available
 $androidDetails = $androidWorkload.Details
 if (-not $androidDetails) {
@@ -69,7 +66,6 @@ Write-Host "Android SDK API Level: $($androidDetails.ApiLevel)"
 Write-Host "Android SDK Build Tools Version: $($androidDetails.BuildToolsVersion)"
 Write-Host "Android SDK Command Line Tools Version: $($androidDetails.CmdLineToolsVersion)"
 Write-Host "JDK Major Version: $($androidDetails.JdkMajorVersion)"
-Write-Host "GitHub Actions Runner Version: $githubActionsRunnerVersion"
 Write-Host "Docker Repository: $DockerRepository"
 Write-Host "Docker Platform: $DockerPlatform"
 Write-Host "Version: $Version"
@@ -134,7 +130,6 @@ $buildArgs = @(
     "--build-arg", "ANDROID_SDK_BUILD_TOOLS_VERSION=$($androidDetails.BuildToolsVersion)",
     "--build-arg", "ANDROID_SDK_CMDLINE_TOOLS_VERSION=$($androidDetails.CmdLineToolsVersion)",
     "--build-arg", "DOTNET_WORKLOADS_VERSION=$dotnetCommandWorkloadSetVersion",
-    "--build-arg", "GITHUB_ACTIONS_RUNNER_VERSION=$githubActionsRunnerVersion",
     "--platform", $DockerPlatform,
     # Dynamic OCI labels with resolved build-time values
     "--label", "org.opencontainers.image.version=$dotnetCommandWorkloadSetVersion",
@@ -185,7 +180,6 @@ try {
         "android_build_tools=$($androidDetails.BuildToolsVersion)" >> $env:GITHUB_OUTPUT
         "android_cmdline_tools=$($androidDetails.CmdLineToolsVersion)" >> $env:GITHUB_OUTPUT
         "jdk_version=$($androidDetails.JdkMajorVersion)" >> $env:GITHUB_OUTPUT
-        "github_actions_runner=$githubActionsRunnerVersion" >> $env:GITHUB_OUTPUT
         "docker_platform=$DockerPlatform" >> $env:GITHUB_OUTPUT
         "image_tags=$($tags -join '|')" >> $env:GITHUB_OUTPUT
     }

@@ -129,11 +129,6 @@ build {
     destination = "/tmp/MauiProvisioning"
   }
 
-  provisioner "file" {
-    source      = "../scripts/github-runner.sh"
-    destination = "/tmp/github-runner.sh"
-  }
-
   # Copy common functions
   provisioner "file" {
     source      = "../../../common-functions.ps1"
@@ -264,63 +259,6 @@ build {
     ]
   }
 
-  # Copy GitHub Actions runner LaunchAgent
-  provisioner "file" {
-    source      = "../scripts/com.github.actions.runner.plist"
-    destination = "/tmp/com.github.actions.runner.plist"
-  }
-
-  # Install GitHub Actions runner helper script and LaunchAgent
-  provisioner "shell" {
-    inline = [
-      "export PATH=\"/usr/bin:/bin:/usr/sbin:/sbin:$$PATH\"",
-      "echo 'Installing GitHub Actions runner helper script...'",
-      "mkdir -p /Users/admin/actions-runner",
-      "mkdir -p /Users/admin/Library/LaunchAgents",
-      "mkdir -p /Users/admin/Library/Logs",
-      "mv /tmp/github-runner.sh /Users/admin/actions-runner/maui-runner.sh",
-      "chown admin:staff /Users/admin/actions-runner/maui-runner.sh",
-      "chmod +x /Users/admin/actions-runner/maui-runner.sh",
-      "mv /tmp/com.github.actions.runner.plist /Users/admin/Library/LaunchAgents/com.github.actions.runner.plist",
-      "chown admin:staff /Users/admin/Library/LaunchAgents/com.github.actions.runner.plist",
-      "chmod 644 /Users/admin/Library/LaunchAgents/com.github.actions.runner.plist",
-      "echo 'Runner helper script installed at /Users/admin/actions-runner/maui-runner.sh'",
-      "echo 'LaunchAgent installed - runner will auto-start at boot if GITHUB_ORG and GITHUB_TOKEN are set'"
-    ]
-  }
-
-  # Copy Gitea Actions runner helper script
-  provisioner "file" {
-    source      = "../scripts/gitea-runner.sh"
-    destination = "/tmp/gitea-runner.sh"
-  }
-
-  # Copy Gitea runner installation script
-  provisioner "file" {
-    source      = "../scripts/install-gitea-runner.sh"
-    destination = "/tmp/install-gitea-runner.sh"
-  }
-
-  # Copy Gitea Actions runner LaunchAgent
-  provisioner "file" {
-    source      = "../scripts/com.gitea.actions.runner.plist"
-    destination = "/tmp/com.gitea.actions.runner.plist"
-  }
-
-  # Install Gitea Actions runner and LaunchAgent
-  provisioner "shell" {
-    inline = [
-      "export PATH=\"/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$$PATH\"",
-      "chmod +x /tmp/install-gitea-runner.sh",
-      "/tmp/install-gitea-runner.sh",
-      "mv /tmp/com.gitea.actions.runner.plist /Users/admin/Library/LaunchAgents/com.gitea.actions.runner.plist",
-      "chown admin:staff /Users/admin/Library/LaunchAgents/com.gitea.actions.runner.plist",
-      "chmod 644 /Users/admin/Library/LaunchAgents/com.gitea.actions.runner.plist",
-      "echo 'LaunchAgent installed - Gitea runner will auto-start at boot if GITEA_INSTANCE_URL and GITEA_RUNNER_TOKEN are set'"
-    ]
-    timeout = "10m"
-  }
-
   # Copy shell profile setup script
   provisioner "file" {
     source      = "../scripts/setup-shell-profiles.sh"
@@ -387,16 +325,13 @@ build {
       "    \"node\": \"$(node --version 2>/dev/null || echo 'not installed')\",",
       "    \"npm\": \"$(npm --version 2>/dev/null || echo 'not installed')\",",
       "    \"gh\": \"$(gh --version 2>/dev/null | head -1 || echo 'not installed')\",",
-      "    \"fastlane\": \"$(fastlane --version 2>/dev/null || echo 'not installed')\",",
-      "    \"act_runner\": \"$(/Users/admin/gitea-runner/act_runner --version 2>/dev/null || echo 'not installed')\"",
+      "    \"fastlane\": \"$(fastlane --version 2>/dev/null || echo 'not installed')\"",
       "  },",
       "  \"capabilities\": [",
       "    \"ios-build\",",
       "    \"android-build\",",
       "    \"maui-build\",",
       "    \"ui-testing\",",
-      "    \"github-actions\",",
-      "    \"gitea-actions\",",
       "    \"automated-testing\",",
       "    \"multiple-xcode-versions\"",
       "  ],",
@@ -520,32 +455,21 @@ build {
       "if [ -n '${var.additional_xcode_versions}' ]; then echo '  - Additional Xcode versions: ${var.additional_xcode_versions}'; fi",
       "echo '  - Android SDK and tools'",
       "echo '  - Visual Studio Code'",
-      "echo '  - Development utilities and CI helpers'",
+      "echo '  - Development utilities'",
       "echo ''",
       "echo 'Xcode Management:'",
       "echo '  - List versions: xcodes installed'",
       "echo '  - Switch version: sudo xcodes select <version>'",
       "echo '  - Current version: xcodebuild -version'",
       "echo ''",
-      "echo 'CI Runner Support (auto-starts at boot):'",
-      "echo '  Configure with .env file:'",
-      "echo '    1. Create .env file with GITHUB_ORG/GITHUB_TOKEN or GITEA_INSTANCE_URL/GITEA_RUNNER_TOKEN'",
-      "echo '    2. tart run ${var.image_name} --dir config:/path/to/folder/with/.env'",
-      "echo '    3. Runners auto-start and register on boot'",
-      "echo ''",
-      "echo '  Custom initialization:'",
-      "echo '    Place init.sh in same folder as .env for custom startup logic'",
-      "echo ''",
-      "echo '  Manual runner execution:'",
-      "echo '    GitHub Actions: /Users/admin/actions-runner/maui-runner.sh'",
-      "echo '    Gitea Actions: /Users/admin/gitea-runner/gitea-runner.sh'",
+      "echo 'Custom initialization:'",
+      "echo '  Mount config folder with init.sh for custom startup logic:'",
+      "echo '    tart run ${var.image_name} --dir config:/path/to/folder/with/init.sh'",
       "echo ''",
       "echo 'Documentation:'",
       "echo '  Installed software (human): ~/installed-software.md'",
       "echo '  Installed software (machine): ~/installed-software.json'",
       "echo '  Build information: /usr/local/share/build-info.json'",
-      "echo '  Runner setup guide: See RUNNER-SETUP.md in repository'",
-      "echo ''",
       "echo 'To run: tart run ${var.image_name}'",
       "echo 'To run with project: tart run ${var.image_name} --dir project:/path/to/your/project'",
       "echo 'To run with config: tart run ${var.image_name} --dir config:/path/to/config'"
