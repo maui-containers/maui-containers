@@ -61,6 +61,12 @@ variable "memory_gb" {
   default     = 8
 }
 
+variable "disk_size_gb" {
+  type        = number
+  description = "Disk size in GB for the VM"
+  default     = 160
+}
+
 variable "ssh_username" {
   type        = string
   description = "SSH username"
@@ -108,7 +114,7 @@ source "tart-cli" "maui" {
   vm_name      = var.image_name
   cpu_count    = var.cpu_count
   memory_gb    = var.memory_gb
-  disk_size_gb = 120
+  disk_size_gb = var.disk_size_gb
   ssh_password = var.ssh_password
   ssh_timeout  = "120s"
   ssh_username = var.ssh_username
