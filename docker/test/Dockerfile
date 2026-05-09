@@ -204,6 +204,10 @@ RUN android sdk install \
     --package="platforms;android-${ANDROID_SDK_API_LEVEL}" \
     --package="system-images;android-${ANDROID_SDK_API_LEVEL};${ANDROID_SDK_AVD_SYSTEM_IMAGE_TYPE};${ANDROID_SDK_AVD_HOST_ABI}"
 
+RUN test -x "${ANDROID_HOME}/platform-tools/adb" \
+    && test -x "${ANDROID_HOME}/emulator/emulator" \
+    && test -d "${ANDROID_HOME}/system-images/android-${ANDROID_SDK_API_LEVEL}/${ANDROID_SDK_AVD_SYSTEM_IMAGE_TYPE}/${ANDROID_SDK_AVD_HOST_ABI}"
+
 RUN android sdk info --format=json > /home/mauiusr/sdk_info.json
 RUN android sdk list --installed --format=json > /home/mauiusr/sdk_list.json
 
@@ -216,6 +220,8 @@ RUN android avd create \
     --sdk="system-images;android-${ANDROID_SDK_API_LEVEL};${ANDROID_SDK_AVD_SYSTEM_IMAGE_TYPE};${ANDROID_SDK_AVD_HOST_ABI}" \
     --device="${ANDROID_SDK_AVD_DEVICE_TYPE}" \
     --force
+
+RUN test -f "/home/mauiusr/.android/avd/Emulator_${ANDROID_SDK_API_LEVEL}.avd/config.ini"
 
 # Expose ports for Appium, Android emulator, ADB, and GRPC
 EXPOSE 4723 5554 5555 8554

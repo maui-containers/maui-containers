@@ -112,6 +112,16 @@ $androidJdkMajorVersion = $androidDetails.JdkMajorVersion
 $androidAvdSystemImageType = $androidDetails.SystemImageType
 $androidAvdDeviceType = $androidDetails.AvdDeviceType
 
+if ([string]::IsNullOrWhiteSpace($androidAvdSystemImageType)) {
+    $androidAvdSystemImageType = "google_apis"
+    Write-Warning "Android workload did not specify an AVD system image type; using fallback: $androidAvdSystemImageType"
+}
+
+if ([string]::IsNullOrWhiteSpace($androidAvdDeviceType)) {
+    $androidAvdDeviceType = "Nexus 5X"
+    Write-Warning "Android workload did not specify an AVD device type; using fallback: $androidAvdDeviceType"
+}
+
 # Extract the dotnet command version for Docker tags
 $dotnetCommandWorkloadSetVersion = $workloadInfo.DotnetCommandWorkloadSetVersion
 
