@@ -501,6 +501,7 @@ jobs:
         cleanup() {
           echo "🧹 Cleaning up container..."
           docker logs "$CONTAINER_NAME" 2>&1 | tail -80 || true
+          docker exec "$CONTAINER_NAME" /usr/bin/bash -lc 'for log in /logs/*.stdout.log; do echo "--- ${log} ---"; tail -80 "$log"; done' || true
           docker rm -f "$CONTAINER_NAME" 2>/dev/null || true
         }
         trap cleanup EXIT
@@ -518,7 +519,7 @@ jobs:
         ELAPSED=0
         while [ "$ELAPSED" -lt "$BOOT_TIMEOUT" ]; do
           BOOT=$(docker exec "$CONTAINER_NAME" \
-            /home/mauiusr/.android/platform-tools/adb -s emulator-5554 shell getprop sys.boot_completed 2>/dev/null || true)
+            /usr/bin/bash -lc '"${ANDROID_SDK_ROOT:-$ANDROID_HOME}/platform-tools/adb" -s emulator-5554 shell getprop sys.boot_completed' 2>/dev/null || true)
           if [ "$(echo "$BOOT" | tr -d '[:space:]')" = "1" ]; then
             echo "✅ Emulator booted in ~${ELAPSED}s"
             break
@@ -538,7 +539,7 @@ jobs:
         # 2. Verify adb sees the device
         echo "🔍 Checking adb devices..."
         ADB_OUTPUT=$(docker exec "$CONTAINER_NAME" \
-          /home/mauiusr/.android/platform-tools/adb devices 2>/dev/null)
+          /usr/bin/bash -lc '"${ANDROID_SDK_ROOT:-$ANDROID_HOME}/platform-tools/adb" devices' 2>/dev/null)
         echo "$ADB_OUTPUT"
         if echo "$ADB_OUTPUT" | grep -q "emulator-5554"; then
           echo "✅ ADB sees emulator"

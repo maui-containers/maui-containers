@@ -96,6 +96,8 @@ ENV NODE_VERSION=lts.x \
     LOG_PATH=/logs \
     JAVA_HOME="/usr/lib/jvm/msopenjdk-${JDK_MAJOR_VERSION}-${TARGETARCH}"
 
+ENV PATH="${ANDROID_HOME}/platform-tools:${ANDROID_HOME}/emulator:${ANDROID_HOME}/cmdline-tools/${ANDROID_SDK_CMDLINE_TOOLS_VERSION}/bin:${PATH}"
+
 # Create log directory
 RUN mkdir ${LOG_PATH}
 
