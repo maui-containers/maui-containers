@@ -9,6 +9,7 @@ This guide provides commands for building Docker images and Tart VM images local
   - [Linux Images](#linux-images)
   - [Windows Images](#windows-images)
   - [Test Images](#test-images)
+  - [Using Custom Startup Scripts](#using-custom-startup-scripts)
 - [Tart VM Images](#tart-vm-images)
   - [Building VMs](#building-vms)
   - [Running VMs](#running-vms)
@@ -111,7 +112,19 @@ pwsh ./docker/test/build.ps1 \
 pwsh ./docker/test/run.ps1 -AndroidSdkApiLevel 35
 ```
 
-### Development Mode
+### Using Custom Startup Scripts
+
+Docker images run optional startup scripts before the container command:
+
+#### Bash init (Linux)
+```bash
+docker run -it \
+  -v "$PWD/config:/config" \
+  -e INIT_BASH_SCRIPT=/config/init.sh \
+  maui-build:latest bash
+```
+
+#### Development Mode
 ```bash
 docker run -it maui-build:latest pwsh
 ```
@@ -172,14 +185,14 @@ pwsh ./macos/tart/scripts/build.ps1 \
   -DotnetChannel 10.0 \
   -CPUCount 8 \
   -MemoryGB 16 \
-  -DiskSizeGB 100
+  -DiskSizeGB 160
 ```
 
 ### Running VMs
 
 #### Basic Run
 ```bash
-# Start VM (with auto-registration if env vars set)
+# Start VM
 tart run maui-dev-tahoe-dotnet10.0
 
 # Start in background
@@ -201,6 +214,12 @@ tart ip maui-dev-tahoe-dotnet10.0
 
 # SSH into VM (password: admin)
 ssh admin@$(tart ip maui-dev-tahoe-dotnet10.0)
+```
+
+#### With Custom Startup Logic
+```bash
+# Mount a folder containing init.sh for your own bootstrap or runner setup
+tart run maui-dev-tahoe-dotnet10.0 --dir config:/path/to/config
 ```
 
 ### Testing VMs

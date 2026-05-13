@@ -1,13 +1,12 @@
 {
   "cpu_count": 4,
   "memory_gb": 8,
-  "disk_size_gb": 160,
   "ssh_username": "admin",
   "ssh_password": "admin",
   "registry": "",
   "build_settings": {
-    "maui_image_disk_size_gb": 60,
-    "ci_image_disk_size_gb": 50
+    "maui_image_disk_size_gb": 160,
+    "ci_image_disk_size_gb": 160
   },
   "optimization": {
     "disable_spotlight": true,

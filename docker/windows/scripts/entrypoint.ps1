@@ -1,5 +1,4 @@
 # Entrypoint script for MAUI Windows container
-# Runs initialization hooks, then executes the CMD
 
 $ErrorActionPreference = 'Stop'
 
@@ -14,8 +13,10 @@ if (Test-Path $env:INIT_PWSH_SCRIPT) {
 
 # Execute whatever CMD was provided (or default)
 Write-Host "Executing CMD: $args"
-if ($args.Count -gt 0) {
+if ($args.Count -gt 1) {
     & $args[0] $args[1..($args.Count-1)]
+} elseif ($args.Count -eq 1) {
+    & $args[0]
 } else {
     # Default: keep container alive
     Write-Host "No CMD provided, keeping container alive..."

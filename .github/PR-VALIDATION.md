@@ -31,8 +31,8 @@ You can also run it manually using the `workflow_dispatch` trigger.
 - Supports three test modes:
   - **`single-platform`**: Fastest - builds one .NET version on Linux base only
   - **`base-only`**: Medium - builds base images for all .NET versions and platforms
-  - **`all`**: Comprehensive - builds base and test images (slower)
-- Runs builds in parallel with resource limits to avoid overloading build hosts
+   - **`all`**: Comprehensive - builds base and test images (slower)
+- Runs builds in parallel with resource limits to avoid overloading runners
 
 ### 3. Image Validation Tests 🧪
 - **Base Images**: Tests .NET version, MAUI workloads, PowerShell, Android SDK, Java
@@ -75,7 +75,7 @@ You can manually run the validation with different options:
 - **Windows builds** are slower than Linux builds
 - **Test images** take longest due to Android Emulator setup
 - **Parallel builds** are limited to 4 concurrent jobs
-- Use **`base-only`** mode for most PRs unless testing test image changes
+- Use **`base-only`** mode for most PRs unless testing image changes
 
 ## Troubleshooting
 

@@ -263,8 +263,8 @@ jobs:
 
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Triggered Workflows:" >> $GITHUB_STEP_SUMMARY
-          echo "1. **Docker Linux Images** - MAUI development containers" >> $GITHUB_STEP_SUMMARY
-          echo "2. **Docker Windows Images** - MAUI development containers" >> $GITHUB_STEP_SUMMARY
+          echo "1. **Docker Linux Images** - MAUI development images" >> $GITHUB_STEP_SUMMARY
+          echo "2. **Docker Windows Images** - MAUI development images" >> $GITHUB_STEP_SUMMARY
           echo "3. **Emulator Images** (Linux) - Android emulator with Appium" >> $GITHUB_STEP_SUMMARY
           echo "4. **Tart VM Images** (macOS) - MAUI development VMs" >> $GITHUB_STEP_SUMMARY
         else

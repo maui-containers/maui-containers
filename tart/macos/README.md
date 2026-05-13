@@ -72,13 +72,19 @@ tart run maui-dev-sequoia
 pwsh ./scripts/test.ps1 -ImageName maui-dev-sequoia -TestType maui
 ```
 
+### 5. (Optional) Run custom startup logic
+Mount a config folder containing `init.sh` to run your own bootstrap after the VM starts:
+```bash
+tart run maui-dev-sequoia --dir config:/path/to/config
+```
+
 ## Image Types
 
 ### MAUI Development Image (`maui.pkr.hcl`)
 - Built directly on Cirrus Labs `macos-<version>-xcode:<tag>` VMs
 - Installs .NET SDK and MAUI workloads
 - Adds Xcode tooling, iOS simulators, Android SDK, and VS Code
-- Runs a mounted `config/init.sh` at startup for custom post-start setup
+- Supports custom startup logic through a mounted `config/init.sh`
 
 ## Configuration
 
@@ -119,7 +125,7 @@ task:
 1. **Version Pinning**: Pin specific versions in templates
 2. **Resource Management**: Allocate appropriate CPU/memory
 3. **Directory Mounting**: Use `--dir` for project access
-4. **Post-start Customization**: Mount a `config/init.sh` script for project-specific setup
+4. **Custom Automation**: Use a mounted `config/init.sh` for project-specific startup or runner setup
 5. **SSH Access**: Configure for automation and debugging
 6. **Image Registry**: Push to container registry for sharing
 

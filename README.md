@@ -27,8 +27,8 @@ maui-containers/
 Located in `docker/` directory:
 
 1. **Development Images** (`docker/linux/`, `docker/windows/`) - Complete MAUI development environment
-   - Use as standalone development containers or as foundation images for your own tooling
-   - Add CI registration or other background services through your own startup scripts when needed
+   - Use as standalone development containers
+   - Provide custom startup behavior with `INIT_PWSH_SCRIPT` and, on Linux, `INIT_BASH_SCRIPT`
 2. **Test Images** (`docker/test/`) - Ready-to-use testing environment with Appium and Android Emulator (Linux only)
 
 ## macOS Virtual Machines (Tart)
@@ -36,7 +36,7 @@ Located in `tart/` directory:
 
 3. **macOS VM Images** (`tart/macos/`) - Complete macOS MAUI development VMs with iOS/macOS/Android support
    - Published to GitHub Container Registry (ghcr.io)
-   - Supports custom startup initialization through mounted scripts
+   - Supports custom startup behavior through a mounted `config/init.sh`
    - Supports multiple Xcode versions
 
 ## Image Naming & Tag Format
@@ -158,6 +158,14 @@ docker run -it maui-containers/maui-linux:dotnet10.0 bash
 docker run -it maui-containers/maui-windows:dotnet9.0 powershell
 ```
 
+**With Custom Startup Logic:**
+```bash
+docker run -it \
+  -v "$PWD/config:/config" \
+  -e INIT_BASH_SCRIPT=/config/init.sh \
+  maui-containers/maui-linux:dotnet10.0
+```
+
 **As Base Image for Custom Containers:**
 ```dockerfile
 FROM maui-containers/maui-linux:dotnet10.0-workloads10.0.100-rc.2.25024.3
@@ -171,7 +179,8 @@ FROM maui-containers/maui-linux:dotnet10.0-workloads10.0.100-rc.2.25024.3
 - **PowerShell** (cross-platform)
 - **Development tools** (Git, build tools, etc.)
 
-### Initialization Environment Variables:
+### Startup Environment Variables:
+
 - `INIT_PWSH_SCRIPT` - PowerShell script to run before the container command (Linux/Windows)
 - `INIT_BASH_SCRIPT` - Bash script to run before the container command (Linux only)
 
@@ -377,6 +386,14 @@ tart run ghcr.io/maui-containers/maui-macos:tahoe-dotnet10.0
 
 # Pin to a specific workload version
 tart clone ghcr.io/maui-containers/maui-macos:tahoe-dotnet10.0-workloads10.0.100-rc.2.25024.3 maui-dev
+```
+
+### Custom Startup
+
+Mount a config directory containing `init.sh` to run your own bootstrap, including any runner setup you prefer:
+
+```bash
+tart run ghcr.io/maui-containers/maui-macos:tahoe-dotnet10.0 --dir config:/path/to/config
 ```
 
 ### What's Included:

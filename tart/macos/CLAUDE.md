@@ -79,6 +79,7 @@ MAUI Development Image (maui.pkr.hcl)
     - Xcode tooling + iOS simulators
     - Android SDK + development tools
     - VS Code + development utilities
+    - Custom startup hook support through mounted config/init.sh
 ```
 
 ### Configuration System
@@ -98,7 +99,7 @@ MAUI Development Image (maui.pkr.hcl)
 ### Key Components
 
 1. **Packer Templates** (`templates/`):
-   - `maui.pkr.hcl`: Base MAUI development environment with optional startup initialization
+   - `maui.pkr.hcl`: Base MAUI development environment
 
 2. **Build Scripts** (`scripts/`):
    - `build.ps1`: Main build orchestration with platform matrix resolution
@@ -164,7 +165,11 @@ tart run maui-dev-tahoe-dotnet10.0 --dir myproject:/path/to/project
 # 4. Build and test as normal
 ```
 
-### Publishing Images
+### CI/CD Integration
+
+Use Tart images in CI by running your own bootstrap or runner setup from a mounted `config/init.sh`.
+
+**Publishing Images:**
 ```bash
 # Publish to registry for reuse
 tart push maui-dev-tahoe-dotnet10.0 your-registry/maui-dev-tahoe-dotnet10.0:latest
@@ -228,6 +233,14 @@ Required tools (checked by `quick-start.ps1`):
 - Uses same .NET workload resolution logic as Docker builds
 - Shares configuration patterns with container build system
 - VM images can be used alongside Docker containers for hybrid workflows
+
+## Custom Startup Configuration
+
+Mount a config directory containing `init.sh` to run your own setup when the VM starts:
+
+```bash
+tart run maui-dev-tahoe-dotnet10.0 --dir config:/path/to/config
+```
 
 ## Common Parameters
 

@@ -21,6 +21,8 @@ Param(
     [string]$BuildSha = "",
     [int]$CPUCount = 4,
     [int]$MemoryGB = 8,
+    [ValidateRange(0, 4096)]
+    [int]$DiskSizeGB = 0,
     [switch]$Push,
     [switch]$PushOnly,
     [switch]$DryRun,
@@ -131,6 +133,25 @@ function Test-VersionCompatibility {
 
     return $true
 }
+
+function Get-OptionalPropertyValue {
+    param(
+        [object]$InputObject,
+        [string]$Name
+    )
+
+    if (-not $InputObject) {
+        return $null
+    }
+
+    $property = $InputObject.PSObject.Properties | Where-Object { $_.Name -eq $Name } | Select-Object -First 1
+    if ($property) {
+        return $property.Value
+    }
+
+    return $null
+}
+
 # Normalize inputs
 if ($DotnetChannel) {
     $DotnetChannel = $DotnetChannel.Trim()
@@ -232,6 +253,21 @@ if (-not $ImageName) {
     }
 }
 
+if ($DiskSizeGB -eq 0) {
+    $buildSettings = Get-OptionalPropertyValue -InputObject $config -Name "build_settings"
+    $diskSizePropertyName = switch ($ImageType) {
+        "maui" { "maui_image_disk_size_gb" }
+        "ci" { "ci_image_disk_size_gb" }
+    }
+    $configuredDiskSizeGB = Get-OptionalPropertyValue -InputObject $buildSettings -Name $diskSizePropertyName
+
+    if ($configuredDiskSizeGB) {
+        $DiskSizeGB = [int]$configuredDiskSizeGB
+    } else {
+        $DiskSizeGB = 160
+    }
+}
+
 # Set base image for layered builds (not needed for push-only mode)
 if (-not $PushOnly -and -not $BaseImage) {
     $BaseImage = switch ($ImageType) {
@@ -271,6 +307,7 @@ if (-not $PushOnly) {
     Write-Host "Base Image: $BaseImage"
     Write-Host "CPU Count: $CPUCount"
     Write-Host "Memory: ${MemoryGB}GB"
+    Write-Host "Disk: ${DiskSizeGB}GB"
 }
 if ($Registry) {
     Write-Host "Registry: $Registry"
@@ -548,6 +585,7 @@ try {
             "additional_xcode_versions" = ($AdditionalXcodeVersions -join ",")
             "cpu_count" = $CPUCount
             "memory_gb" = $MemoryGB
+            "disk_size_gb" = $DiskSizeGB
         }
 
         # Add any additional variables from config file

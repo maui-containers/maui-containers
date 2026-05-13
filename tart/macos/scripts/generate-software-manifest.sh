@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Script to generate software manifest for MAUI Tart VM images
-# Generates a stable inventory of installed tools and versions
+# Generates a structured inventory similar to hosted image software manifests.
 
 OUTPUT_FILE="${1:-/usr/local/share/installed-software.md}"
 TEMP_FILE=$(mktemp)
@@ -251,6 +251,18 @@ Key environment variables configured for development:
 | ANDROID_HOME | ~/Library/Android/sdk |
 | ANDROID_SDK_ROOT | ~/Library/Android/sdk |
 | JAVA_HOME | (set by Xcode) |
+
+EOF
+
+# Custom Startup
+cat >> "${TEMP_FILE}" << 'EOF'
+## Custom Startup
+
+This image runs `/Volumes/My Shared Files/config/init.sh` at startup when a config directory is mounted:
+
+```bash
+tart run <image> --dir config:/path/to/config
+```
 
 EOF
 

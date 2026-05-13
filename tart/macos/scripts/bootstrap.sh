@@ -10,7 +10,15 @@ log "Starting MAUI VM bootstrap initialization"
 
 # Standard location for user-provided configuration
 CONFIG_DIR="/Volumes/My Shared Files/config"
+ENV_FILE="${CONFIG_DIR}/.env"
 INIT_SCRIPT="${CONFIG_DIR}/init.sh"
+
+# Report if a .env file exists for user-provided initialization logic.
+if [[ -f "${ENV_FILE}" ]]; then
+  log "Found .env file at ${ENV_FILE}"
+else
+  log "No .env file found at ${ENV_FILE}"
+fi
 
 # Run custom initialization script if provided
 if [[ -f "${INIT_SCRIPT}" ]]; then

@@ -109,7 +109,7 @@ RUN android sdk list --installed --format=json > $env:LOG_PATH/sdk_list.json
 # Accept Android Licenses
 RUN android sdk accept-licenses --force --home="$env:ANDROID_HOME"
 
-# Copy the init script and entrypoint
+# Copy the init and entrypoint scripts
 COPY scripts/init.ps1 C:/init.ps1
 COPY scripts/entrypoint.ps1 C:/entrypoint.ps1
 
@@ -124,6 +124,7 @@ RUN New-Item -ItemType Directory -Path C:/ProgramData -Force -ErrorAction Silent
     & C:/temp/Generate-SpdxManifest.ps1 -SourceJson C:/ProgramData/installed-software.json -OutputFile C:/ProgramData/installed-software.spdx.json; \
     & C:/temp/Generate-CycloneDxManifest.ps1 -SourceJson C:/ProgramData/installed-software.json -OutputFile C:/ProgramData/installed-software.cdx.json
 
+# Return to root
 WORKDIR C:/
 
 # Use ENTRYPOINT to run initialization hooks, CMD is user-overridable

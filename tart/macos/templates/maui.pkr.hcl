@@ -255,7 +255,7 @@ build {
       "chmod 644 /Users/admin/Library/LaunchAgents/com.maui.bootstrap.plist",
       "echo 'Bootstrap system installed'",
       "echo 'Mount config folder with: tart run <image> --dir config:/path/to/folder'",
-      "echo 'Config folder can contain init.sh for custom startup logic'"
+      "echo 'Config folder should contain: .env and/or init.sh'"
     ]
   }
 
@@ -463,13 +463,13 @@ build {
       "echo '  - Current version: xcodebuild -version'",
       "echo ''",
       "echo 'Custom initialization:'",
-      "echo '  Place init.sh in a mounted config folder for post-start customization'",
+      "echo '  Mount config folder with init.sh for custom startup logic:'",
+      "echo '    tart run ${var.image_name} --dir config:/path/to/folder/with/init.sh'",
       "echo ''",
       "echo 'Documentation:'",
       "echo '  Installed software (human): ~/installed-software.md'",
       "echo '  Installed software (machine): ~/installed-software.json'",
       "echo '  Build information: /usr/local/share/build-info.json'",
-      "echo ''",
       "echo 'To run: tart run ${var.image_name}'",
       "echo 'To run with project: tart run ${var.image_name} --dir project:/path/to/your/project'",
       "echo 'To run with config: tart run ${var.image_name} --dir config:/path/to/config'"

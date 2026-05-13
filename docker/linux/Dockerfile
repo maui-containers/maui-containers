@@ -75,6 +75,7 @@ RUN apt-get update && apt-get install -y \
     apt-transport-https software-properties-common \
     unzip \
     tree \
+    socat supervisor \
     jq build-essential libssl-dev libffi-dev python3 python3-venv python3-dev python3-pip \
     libkrb5-3 zlib1g \
     && apt autoremove -y \
@@ -136,7 +137,7 @@ ENV PATH="/home/mauiusr/.dotnet/tools:${PATH}"
 # Set working directory
 WORKDIR /home/mauiusr
 
-# Copy the init script and entrypoint with correct ownership and permissions
+# Copy the init and entrypoint scripts with correct ownership and permissions
 COPY --chown=1400:1401 --chmod=755 scripts/init.sh /home/mauiusr/init.sh
 COPY --chown=1400:1401 --chmod=755 scripts/entrypoint.sh /home/mauiusr/entrypoint.sh
 
@@ -171,6 +172,7 @@ RUN /tmp/generate-software-manifest.json.sh /usr/local/share/installed-software.
 RUN /tmp/generate-software-manifest-spdx.sh /usr/local/share/installed-software.json /usr/local/share/installed-software.spdx.json || echo "SPDX manifest generation failed"
 RUN /tmp/generate-software-manifest-cyclonedx.sh /usr/local/share/installed-software.json /usr/local/share/installed-software.cdx.json || echo "CycloneDX manifest generation failed"
 
+# Return to home directory
 WORKDIR /home/mauiusr
 
 # Use ENTRYPOINT to run initialization hooks, CMD is user-overridable

@@ -1,6 +1,6 @@
 # Software Manifest
 
-The MAUI Tart VM images include comprehensive software manifests available in human-readable and machine-readable formats, including industry-standard SBOM (Software Bill of Materials).
+The MAUI Tart VM images include comprehensive software manifests available in human-readable and machine-readable formats including industry-standard SBOM (Software Bill of Materials).
 
 ## Formats
 
@@ -57,6 +57,9 @@ Standard paths and configuration for:
 - DOTNET_ROOT
 - ANDROID_HOME / ANDROID_SDK_ROOT
 - JAVA_HOME
+
+### Custom Startup
+Information about mounted startup hook support
 
 ### Build Information
 - Base image details
@@ -125,7 +128,7 @@ tart clone ghcr.io/maui-containers/maui-macos:tahoe-dotnet10.0 maui-dev-tahoe-do
 
 ## Format
 
-The manifest follows a predictable markdown structure:
+The manifest follows a structured software inventory format:
 
 1. **Operating System** - Version and build info
 2. **Xcode** - All versions and SDKs
@@ -137,7 +140,8 @@ The manifest follows a predictable markdown structure:
 8. **Homebrew Packages** - Complete list (expandable section)
 9. **iOS Simulators** - Available device types (expandable section)
 10. **Environment Variables** - Standard paths
-11. **Build Information** - Detailed build metadata (expandable section)
+11. **Custom Startup** - Configuration info
+12. **Build Information** - Detailed build metadata (expandable section)
 
 ## Use Cases
 
@@ -320,6 +324,10 @@ The JSON manifest follows this schema:
     "DOTNET_ROOT": "/Users/admin/.dotnet",
     "ANDROID_HOME": "~/Library/Android/sdk"
   },
+  "startup": {
+    "initScript": "/Volumes/My Shared Files/config/init.sh",
+    "configurationMethod": "Mount config directory with --dir config:/path/to/config"
+  },
   "buildInfo": { /* contents of build-info.json */ }
 }
 ```
@@ -472,25 +480,26 @@ The CycloneDX 1.6 SBOM follows the ECMA-424 standard with this structure:
 
 ## Comparison with GitHub Actions
 
-Like GitHub's hosted runners, our manifests provide:
+Like hosted image inventories, our manifests provide:
 - ✅ Complete software inventory
 - ✅ Version information for all tools
 - ✅ Environment variable documentation
 - ✅ Machine-readable JSON format
 - ✅ Build date and base image tracking
 
-Unlike GitHub's runners:
+Unlike generic hosted image inventories:
 - Our manifests are generated inside the VM (not in a separate repository)
 - We provide four formats: markdown, JSON, SPDX SBOM, and CycloneDX SBOM
 - Dual industry-standard SBOM formats (SPDX 2.3 and CycloneDX 1.6) for supply chain security
 - We focus on MAUI/.NET development tools
 - We include Tart/VM-specific information
+- We document Tart/VM-specific startup hook information
 
 ## Standard Compliance
 
 The manifests follow multiple industry standards:
 
-- **Readable inventory**: Markdown and JSON formats provide a stable inventory of installed tools and versions
+- **Automation Compatibility**: Markdown and JSON formats are designed for easy consumption by build and audit tools
 - **SPDX 2.3 / ISO/IEC 5962:2021**: ISO-certified Software Bill of Materials format, ideal for compliance-focused organizations and government requirements
 - **CycloneDX 1.6 / ECMA-424**: OWASP/ECMA-standardized SBOM format, optimized for DevSecOps workflows and security tooling
 - **Supply Chain Security**: Meets requirements for software transparency (e.g., US Executive Order 14028)

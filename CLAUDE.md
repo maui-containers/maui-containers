@@ -13,6 +13,8 @@ This repository provides development environments for .NET MAUI across multiple 
 2. **Tart VM Images** (`tart/macos/`) - macOS virtual machine images
 3. **Provisioning Module** (`provisioning/`) - PowerShell module for provisioning native macOS hosts
 
+Images provide MAUI development tooling and generic startup hooks so users can add their own runner or automation setup after the image starts.
+
 ## Build Commands
 
 ### Building Docker Images

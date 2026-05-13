@@ -1,6 +1,6 @@
 # MAUI Docker Images
 
-This directory contains Docker images that provide a complete .NET MAUI development environment. These images are designed to be used as standalone development environments or as base images for custom tooling.
+This directory contains Docker images that provide a complete .NET MAUI development environment. These images are designed to be used as standalone development environments or as base images for custom automation.
 
 ## Structure
 
@@ -19,6 +19,7 @@ This directory contains Docker images that provide a complete .NET MAUI developm
 - **Development Tools** - Git, build tools, and other essential development utilities
 
 ### Linux-specific additions:
+- **Supervisor** - Process management for running multiple services
 - **Standard development tools** - curl, wget, unzip, etc.
 
 ### Windows-specific additions:
@@ -27,12 +28,24 @@ This directory contains Docker images that provide a complete .NET MAUI developm
 
 ## Usage
 
-These base images can be used for local development or extended with your own startup scripts and tooling.
+These base images can be used in two modes:
+
+1. **Development Environment** - Use interactively for local development
+2. **Custom Automation Base** - Extend the image or run your own startup scripts
 
 ### As a Development Container
 
 ```bash
 docker run -it ghcr.io/maui-containers/maui-linux:dotnet9.0 bash
+```
+
+### With Custom Startup Logic
+
+```bash
+docker run -it \
+  -v "$PWD/config:/config" \
+  -e INIT_BASH_SCRIPT=/config/init.sh \
+  ghcr.io/maui-containers/maui-linux:dotnet9.0
 ```
 
 ### Example Dockerfile using the base image:

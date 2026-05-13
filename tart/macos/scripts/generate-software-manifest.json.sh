@@ -309,11 +309,16 @@ fi
 
 validate_json_segment "homebrewPackages" "${HOMEBREW_PACKAGES_JSON}"
 
-# Environment variables and CI runner metadata
+# Environment variables and startup metadata
 ENVIRONMENT_VARIABLES_JSON=$(jq -n '{
   DOTNET_ROOT: "/Users/admin/.dotnet",
   ANDROID_HOME: "~/Library/Android/sdk",
   ANDROID_SDK_ROOT: "~/Library/Android/sdk"
+}')
+
+STARTUP_JSON=$(jq -n '{
+  initScript: "/Volumes/My Shared Files/config/init.sh",
+  configurationMethod: "Mount config directory with --dir config:/path/to/config"
 }')
 
 # Optional build metadata
@@ -328,6 +333,7 @@ if [[ -f /usr/local/share/build-info.json ]]; then
 fi
 
 validate_json_segment "environmentVariables" "${ENVIRONMENT_VARIABLES_JSON}"
+validate_json_segment "startup" "${STARTUP_JSON}"
 [[ "${BUILD_INFO_JSON}" != "null" ]] && validate_json_segment "buildInfo" "${BUILD_INFO_JSON}"
 
 # Assemble final JSON manifest
@@ -344,6 +350,7 @@ if ! jq -n \
   --argjson tools "${TOOLS_JSON}" \
   --argjson homebrewPackages "${HOMEBREW_PACKAGES_JSON}" \
   --argjson environmentVariables "${ENVIRONMENT_VARIABLES_JSON}" \
+  --argjson startup "${STARTUP_JSON}" \
   --argjson buildInfo "${BUILD_INFO_JSON}" \
   '{
     manifestVersion: $manifestVersion,
@@ -357,7 +364,8 @@ if ! jq -n \
     packageManagers: $packageManagers,
     tools: $tools,
     homebrewPackages: $homebrewPackages,
-    environmentVariables: $environmentVariables
+    environmentVariables: $environmentVariables,
+    startup: $startup
   } + (if $buildInfo == null then {} else {buildInfo: $buildInfo} end)' 2>"${TEMP_FILE}.builderr" > "${TEMP_FILE}"; then
   echo "ERROR: Failed to assemble final software manifest JSON" >&2
   [[ -s "${TEMP_FILE}.builderr" ]] && cat "${TEMP_FILE}.builderr" >&2

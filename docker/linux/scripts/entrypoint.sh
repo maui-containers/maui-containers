@@ -1,6 +1,5 @@
 #!/bin/bash
 # Entrypoint script for MAUI Linux container
-# Runs initialization hooks, then executes the CMD
 
 set -e
 
