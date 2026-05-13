@@ -2,7 +2,8 @@
 # Lightweight healthcheck: emulator booted + Appium listening.
 # Used by HEALTHCHECK in Dockerfile and external orchestrators.
 
-ADB="/home/mauiusr/.android/platform-tools/adb"
+ANDROID_SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/home/mauiusr/android-sdk}}"
+ADB="${ANDROID_SDK_ROOT}/platform-tools/adb"
 EMULATOR_PORT=${EMULATOR_PORT:-5554}
 APPIUM_PORT=${APPIUM_PORT:-4723}
 

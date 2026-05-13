@@ -137,7 +137,6 @@ jobs:
             [string]$DotnetVersion,
             [string]$Platform,
             [string]$RunnerOs,
-            [string]$BuildRunner = 'false',
             [string]$BuildTest = 'false',
             [string]$AndroidApiLevel = ''
           )
@@ -146,7 +145,6 @@ jobs:
             dotnet_version = $DotnetVersion
             platform       = $Platform
             runner_os      = $RunnerOs
-            build_runner   = $BuildRunner
             build_test     = $BuildTest
           }
 
@@ -373,6 +371,53 @@ jobs:
           }
         }
 
+    - name: 🧪 Verify runner functionality is absent
+      shell: pwsh
+      run: |
+        # Construct image name
+        $imageName = "${{ env.DOCKER_REPOSITORY_BASE }}:dotnet${{ matrix.dotnet_version }}-pr-test"
+
+        Write-Host "Verifying runner functionality is absent: $imageName"
+
+        if ("${{ matrix.platform }}" -eq "linux") {
+          # Test that GitHub Actions runner files are not present
+          $githubRunnerScript = docker run --rm $imageName bash -c 'test -e /home/mauiusr/actions-runner/run.sh && echo "found" || echo "not found"'
+          if ($githubRunnerScript -eq "not found") {
+            Write-Host "✅ GitHub Actions runner not present"
+          } else {
+            Write-Error "❌ GitHub Actions runner script should not be present"
+            exit 1
+          }
+
+          # Test that Gitea runner files are not present
+          $giteaRunnerBinary = docker run --rm $imageName bash -c 'test -e /home/mauiusr/gitea-runner/act_runner && echo "found" || echo "not found"'
+          if ($giteaRunnerBinary -eq "not found") {
+            Write-Host "✅ Gitea Actions runner not present"
+          } else {
+            Write-Error "❌ Gitea Actions runner binary should not be present"
+            exit 1
+          }
+        }
+        elseif ("${{ matrix.platform }}" -eq "windows") {
+          # Test that GitHub Actions runner files are not present (Windows)
+          $githubRunnerScript = docker run --rm $imageName powershell -c "if (Test-Path 'C:\actions-runner\run.cmd') { Write-Output 'found' } else { Write-Output 'not found' }"
+          if ($githubRunnerScript -match "not found") {
+            Write-Host "✅ GitHub Actions runner not present"
+          } else {
+            Write-Error "❌ GitHub Actions runner script should not be present"
+            exit 1
+          }
+
+          # Test that Gitea runner files are not present (Windows)
+          $giteaRunnerBinary = docker run --rm $imageName powershell -c "if (Test-Path 'C:\gitea-runner\act_runner.exe') { Write-Output 'found' } else { Write-Output 'not found' }"
+          if ($giteaRunnerBinary -match "not found") {
+            Write-Host "✅ Gitea Actions runner not present"
+          } else {
+            Write-Error "❌ Gitea Actions runner binary should not be present"
+            exit 1
+          }
+        }
+
     - name: 🔨 Build test image
       if: matrix.build_test == 'true'
       shell: pwsh
@@ -456,6 +501,7 @@ jobs:
         cleanup() {
           echo "🧹 Cleaning up container..."
           docker logs "$CONTAINER_NAME" 2>&1 | tail -80 || true
+          docker exec "$CONTAINER_NAME" /usr/bin/bash -lc 'for log in /logs/*.stdout.log; do echo "--- ${log} ---"; tail -80 "$log"; done' || true
           docker rm -f "$CONTAINER_NAME" 2>/dev/null || true
         }
         trap cleanup EXIT
@@ -473,7 +519,7 @@ jobs:
         ELAPSED=0
         while [ "$ELAPSED" -lt "$BOOT_TIMEOUT" ]; do
           BOOT=$(docker exec "$CONTAINER_NAME" \
-            /home/mauiusr/.android/platform-tools/adb -s emulator-5554 shell getprop sys.boot_completed 2>/dev/null || true)
+            /usr/bin/bash -lc '"${ANDROID_SDK_ROOT:-$ANDROID_HOME}/platform-tools/adb" -s emulator-5554 shell getprop sys.boot_completed' 2>/dev/null || true)
           if [ "$(echo "$BOOT" | tr -d '[:space:]')" = "1" ]; then
             echo "✅ Emulator booted in ~${ELAPSED}s"
             break
@@ -493,7 +539,7 @@ jobs:
         # 2. Verify adb sees the device
         echo "🔍 Checking adb devices..."
         ADB_OUTPUT=$(docker exec "$CONTAINER_NAME" \
-          /home/mauiusr/.android/platform-tools/adb devices 2>/dev/null)
+          /usr/bin/bash -lc '"${ANDROID_SDK_ROOT:-$ANDROID_HOME}/platform-tools/adb" devices' 2>/dev/null)
         echo "$ADB_OUTPUT"
         if echo "$ADB_OUTPUT" | grep -q "emulator-5554"; then
           echo "✅ ADB sees emulator"

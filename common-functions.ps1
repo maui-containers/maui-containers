@@ -625,14 +625,14 @@ function Get-AndroidWorkloadInfo {
         $cmdLineToolsVersion = $Matches[1]
     }
     
-    if ($platformPackage -and $platformPackage.Id -match 'platforms;android-(\d+)') {
+    if ($platformPackage -and $platformPackage.Id -match 'platforms;android-([^;]+)') {
         $apiLevel = $Matches[1]
     }
     
     # Extract system image type and device type information
     if ($systemImagePackage) {
         # Extract system image type (e.g., google_apis, google_apis_playstore)
-        if ($systemImagePackage.Id -match 'system-images;android-\d+;([^;]+);([^;]+)') {
+        if ($systemImagePackage.Id -match 'system-images;android-[^;]+;([^;]+);([^;]+)') {
             $systemImageType = $Matches[1]
             $systemImageArch = $Matches[2]
             Write-Host "Selected system image type: $systemImageType, architecture: $systemImageArch"

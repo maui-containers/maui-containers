@@ -3,8 +3,10 @@ set -euo pipefail
 
 export ANDROID_TOOL_PROCESS_RUNNER_LOG_PATH=/logs/androidsdktool.log
 
-ADB="/home/mauiusr/.android/platform-tools/adb"
-EMULATOR="/home/mauiusr/.android/emulator/emulator"
+ANDROID_SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/home/mauiusr/android-sdk}}"
+ADB="${ANDROID_SDK_ROOT}/platform-tools/adb"
+EMULATOR="${ANDROID_SDK_ROOT}/emulator/emulator"
+export PATH="${ANDROID_SDK_ROOT}/platform-tools:${ANDROID_SDK_ROOT}/emulator:${ANDROID_SDK_ROOT}/cmdline-tools/${ANDROID_SDK_CMDLINE_TOOLS_VERSION:-13.0}/bin:${PATH}"
 
 # Configurable via environment variables
 EMULATOR_BOOT_TIMEOUT=${EMULATOR_BOOT_TIMEOUT:-600}
@@ -31,6 +33,16 @@ echo "  Disable animations: $DISABLE_ANIMATIONS"
 echo "  Disable spellcheck: $DISABLE_SPELLCHECKER"
 echo "  HW keyboard:        $ENABLE_HW_KEYBOARD"
 echo "  Extra args:         $EMULATOR_EXTRA_ARGS"
+
+if [ ! -x "$ADB" ]; then
+    echo "ERROR: adb not found or not executable at $ADB"
+    exit 127
+fi
+
+if [ ! -x "$EMULATOR" ]; then
+    echo "ERROR: emulator not found or not executable at $EMULATOR"
+    exit 127
+fi
 
 # Permissions for KVM
 sudo chown 1400:1401 /dev/kvm
