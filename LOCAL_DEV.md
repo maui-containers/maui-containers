@@ -46,29 +46,24 @@ This guide provides commands for building Docker images and Tart VM images local
 
 ### Linux Images
 
-#### .NET 9.0
+#### .NET 11.0 Preview
 ```bash
 # Build with default settings
-pwsh ./docker/linux/build.ps1 -DotnetVersion "9.0" -DockerRepository "maui-build" -Load
+pwsh ./docker/linux/build.ps1 -DotnetVersion "11.0" -DockerRepository "maui-build" -Load
 
 # Build with specific workload version
 pwsh ./docker/linux/build.ps1 \
-  -DotnetVersion "9.0" \
-  -WorkloadSetVersion "9.0.203" \
+  -DotnetVersion "11.0" \
+  -WorkloadSetVersion "11.100.0-preview.4.26261.2" \
   -DockerRepository "maui-build" \
   -Load
 
-# Build with specific Android API level
-pwsh ./docker/linux/build.ps1 \
-  -DotnetVersion "9.0" \
-  -AndroidSdkApiLevel 35 \
-  -DockerRepository "maui-build" \
-  -Load
+# Android SDK requirements are resolved from the workload set.
 ```
 
-#### .NET 10.0 (Preview)
+#### .NET 10.0
 ```bash
-# Build with auto-detected preview workloads
+# Build with auto-detected workloads
 pwsh ./docker/linux/build.ps1 -DotnetVersion "10.0" -DockerRepository "maui-build" -Load
 ```
 
@@ -85,13 +80,13 @@ pwsh ./docker/build.ps1 \
 
 **Note:** Requires Windows with Docker Desktop set to Windows containers mode.
 
-#### .NET 9.0
+#### .NET 11.0 Preview
 ```powershell
 # Build Windows image
-pwsh ./docker/windows/build.ps1 -DotnetVersion "9.0" -DockerRepository "maui-build" -Load
+pwsh ./docker/windows/build.ps1 -DotnetVersion "11.0" -DockerRepository "maui-build" -Load
 ```
 
-#### .NET 10.0 (Preview)
+#### .NET 10.0
 ```powershell
 pwsh ./docker/windows/build.ps1 -DotnetVersion "10.0" -DockerRepository "maui-build" -Load
 ```
@@ -103,8 +98,8 @@ pwsh ./docker/windows/build.ps1 -DotnetVersion "10.0" -DockerRepository "maui-bu
 ```bash
 # Build with specific Android API level
 pwsh ./docker/test/build.ps1 \
-  -DotnetVersion "9.0" \
-  -AndroidSdkApiLevel 35 \
+  -DotnetVersion "11.0" \
+  -AndroidSdkApiLevel 36 \
   -DockerRepository "maui-testing" \
   -Load
 
@@ -151,11 +146,11 @@ pwsh ./macos/tart/scripts/build.ps1 \
   -DotnetChannel 10.0
 ```
 
-#### Standard Build - .NET 9.0
+#### Standard Build - .NET 11.0 Preview
 ```bash
 pwsh ./macos/tart/scripts/build.ps1 \
   -ImageType maui \
-  -DotnetChannel 9.0
+  -DotnetChannel 11.0
 ```
 
 #### With Additional Xcode Versions
@@ -230,9 +225,9 @@ pwsh ./macos/tart/scripts/test.ps1 \
   -ImageName maui-dev-tahoe-dotnet10.0 \
   -TestType maui
 
-# Test .NET 9.0 image
+# Test .NET 11.0 Preview image
 pwsh ./macos/tart/scripts/test.ps1 \
-  -ImageName maui-dev-tahoe-dotnet9.0 \
+  -ImageName maui-dev-tahoe-dotnet11.0 \
   -TestType maui
 ```
 
@@ -281,7 +276,7 @@ All Docker images (Linux and Windows) include three manifest formats in:
 #### Linux Containers
 ```bash
 # Start container
-docker run -it maui-build:9.0-linux-amd64 bash
+docker run -it maui-build:dotnet10.0 bash
 
 # View JSON manifest
 cat /usr/local/share/installed-software.json | jq .
@@ -301,7 +296,7 @@ jq '.components[] | select(.type == "framework")' /usr/local/share/installed-sof
 #### Windows Containers
 ```powershell
 # Start container
-docker run -it maui-build:9.0-windows-amd64 powershell
+docker run -it maui-build:dotnet10.0 powershell
 
 # View JSON manifest
 Get-Content C:\ProgramData\installed-software.json | ConvertFrom-Json
@@ -454,11 +449,11 @@ tar -czf sbom-$(date +%Y%m%d).tar.gz compliance/
 Check for new .NET workload versions:
 
 ```bash
-# Check .NET 9.0
-pwsh ./check-workload-updates.ps1 -DotnetVersion "9.0"
-
 # Check .NET 10.0
 pwsh ./check-workload-updates.ps1 -DotnetVersion "10.0"
+
+# Check .NET 11.0 Preview
+pwsh ./check-workload-updates.ps1 -DotnetVersion "11.0"
 ```
 
 ---
@@ -558,17 +553,17 @@ ls -la ~/installed-software*
 ### Build Everything Locally
 
 ```bash
-# Docker Linux - .NET 9.0
-pwsh ./docker/linux/build.ps1 -DotnetVersion "9.0" -DockerRepository "maui-build" -Load
-
 # Docker Linux - .NET 10.0
 pwsh ./docker/linux/build.ps1 -DotnetVersion "10.0" -DockerRepository "maui-build" -Load
 
-# Tart VM - .NET 9.0
-pwsh ./tart/macos/scripts/quick-start.ps1 -BuildType maui -DotnetChannel 9.0
+# Docker Linux - .NET 11.0 Preview
+pwsh ./docker/linux/build.ps1 -DotnetVersion "11.0" -DockerRepository "maui-build" -Load
 
 # Tart VM - .NET 10.0
 pwsh ./tart/macos/scripts/quick-start.ps1 -BuildType maui -DotnetChannel 10.0
+
+# Tart VM - .NET 11.0 Preview
+pwsh ./tart/macos/scripts/quick-start.ps1 -BuildType maui -DotnetChannel 11.0
 ```
 
 ### View All Manifests

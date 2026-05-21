@@ -1,4 +1,4 @@
-Param([String]$DotnetVersion="9.0",
+Param([String]$DotnetVersion="10.0",
     [String]$WorkloadSetVersion="",
     [String]$DockerRepository="",
     [String]$DockerPlatform="linux/amd64",
@@ -56,10 +56,12 @@ if (-not $androidDetails) {
 
 # Extract the dotnet command version for Docker tags
 $dotnetCommandWorkloadSetVersion = $workloadInfo.DotnetCommandWorkloadSetVersion
+$dotnetImageTags = Get-DotnetContainerImageTags -DotnetVersion $DotnetVersion -DockerPlatform $DockerPlatform
 
 Write-Host "Building MAUI Image for $DockerPlatform"
 Write-Host "========================================"
 Write-Host ".NET Version: $DotnetVersion"
+Write-Host ".NET SDK Image Tag: $($dotnetImageTags.Sdk)"
 Write-Host "Workload Set Version: $($workloadInfo.WorkloadSetVersion)"
 Write-Host "Dotnet Command Workload Set Version: $dotnetCommandWorkloadSetVersion"
 Write-Host "Android SDK API Level: $($androidDetails.ApiLevel)"
@@ -125,6 +127,7 @@ foreach ($tag in $tags) {
 # Prepare Docker build arguments
 $buildArgs = @(
     "--build-arg", "DOTNET_VERSION=$DotnetVersion",
+    "--build-arg", "DOTNET_SDK_IMAGE_TAG=$($dotnetImageTags.Sdk)",
     "--build-arg", "JDK_MAJOR_VERSION=$($androidDetails.JdkMajorVersion)",
     "--build-arg", "ANDROID_SDK_API_LEVEL=$($androidDetails.ApiLevel)",
     "--build-arg", "ANDROID_SDK_BUILD_TOOLS_VERSION=$($androidDetails.BuildToolsVersion)",
@@ -175,6 +178,7 @@ try {
     if ($env:GITHUB_OUTPUT) {
         Write-Host "Writing version info to GITHUB_OUTPUT for build summary..."
         "dotnet_version=$DotnetVersion" >> $env:GITHUB_OUTPUT
+        "dotnet_sdk_image_tag=$($dotnetImageTags.Sdk)" >> $env:GITHUB_OUTPUT
         "workload_set_version=$dotnetCommandWorkloadSetVersion" >> $env:GITHUB_OUTPUT
         "android_api_level=$($androidDetails.ApiLevel)" >> $env:GITHUB_OUTPUT
         "android_build_tools=$($androidDetails.BuildToolsVersion)" >> $env:GITHUB_OUTPUT

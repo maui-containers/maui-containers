@@ -33,17 +33,8 @@ jobs:
     - name: 🛒 Checkout
       uses: actions/checkout@v4
 
-    - name: 🔍 Check .NET 9.0 Workload Set Versions
-      id: check-dotnet9
-      shell: pwsh
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: |
-        if ("${{ inputs.force_build }}" -eq "true") {
-          ./check-workload-updates.ps1 -DotnetVersion "9.0" -LinuxDockerRepository "${{ env.DOCKER_REPOSITORY_LINUX }}" -WindowsDockerRepository "${{ env.DOCKER_REPOSITORY_WINDOWS }}" -TestDockerRepository "${{ env.DOCKER_REPOSITORY_TEST }}" -ForceBuild
-        } else {
-          ./check-workload-updates.ps1 -DotnetVersion "9.0" -LinuxDockerRepository "${{ env.DOCKER_REPOSITORY_LINUX }}" -WindowsDockerRepository "${{ env.DOCKER_REPOSITORY_WINDOWS }}" -TestDockerRepository "${{ env.DOCKER_REPOSITORY_TEST }}"
-        }
+    # .NET 9.0 is retired from active MAUI support. To revive it, restore this
+    # check with: ./check-workload-updates.ps1 -DotnetVersion "9.0" ...
 
     - name: 🔍 Check .NET 10.0 Workload Set Versions
       id: check-dotnet10
@@ -57,19 +48,31 @@ jobs:
           ./check-workload-updates.ps1 -DotnetVersion "10.0" -LinuxDockerRepository "${{ env.DOCKER_REPOSITORY_LINUX }}" -WindowsDockerRepository "${{ env.DOCKER_REPOSITORY_WINDOWS }}" -TestDockerRepository "${{ env.DOCKER_REPOSITORY_TEST }}"
         }
 
+    - name: 🔍 Check .NET 11.0 Workload Set Versions
+      id: check-dotnet11
+      shell: pwsh
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        if ("${{ inputs.force_build }}" -eq "true") {
+          ./check-workload-updates.ps1 -DotnetVersion "11.0" -LinuxDockerRepository "${{ env.DOCKER_REPOSITORY_LINUX }}" -WindowsDockerRepository "${{ env.DOCKER_REPOSITORY_WINDOWS }}" -TestDockerRepository "${{ env.DOCKER_REPOSITORY_TEST }}" -ForceBuild
+        } else {
+          ./check-workload-updates.ps1 -DotnetVersion "11.0" -LinuxDockerRepository "${{ env.DOCKER_REPOSITORY_LINUX }}" -WindowsDockerRepository "${{ env.DOCKER_REPOSITORY_WINDOWS }}" -TestDockerRepository "${{ env.DOCKER_REPOSITORY_TEST }}"
+        }
+
     - name: 📊 Aggregate Results
       id: aggregate-results
       shell: pwsh
       run: |
-        $dotnet9TriggerBuilds = "${{ steps.check-dotnet9.outputs.trigger-builds }}"
         $dotnet10TriggerBuilds = "${{ steps.check-dotnet10.outputs.trigger-builds }}"
+        $dotnet11TriggerBuilds = "${{ steps.check-dotnet11.outputs.trigger-builds }}"
         $forceBuild = "${{ inputs.force_build }}"
 
         # Trigger builds if ANY .NET version has updates OR force build is enabled
-        $triggerBuilds = ($dotnet9TriggerBuilds -eq "true") -or ($dotnet10TriggerBuilds -eq "true") -or ($forceBuild -eq "true")
+        $triggerBuilds = ($dotnet10TriggerBuilds -eq "true") -or ($dotnet11TriggerBuilds -eq "true") -or ($forceBuild -eq "true")
 
-        Write-Host "🔍 .NET 9.0 trigger builds: $dotnet9TriggerBuilds"
         Write-Host "🔍 .NET 10.0 trigger builds: $dotnet10TriggerBuilds"
+        Write-Host "🔍 .NET 11.0 trigger builds: $dotnet11TriggerBuilds"
         Write-Host "🔍 Force build: $forceBuild"
         Write-Host "🔍 Overall trigger builds: $triggerBuilds"
 
@@ -89,7 +92,7 @@ jobs:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
           console.log('Triggering build-docker-linux workflow - workload update(s) detected');
-          console.log('Each .NET version (9.0 and 10.0) will auto-detect its appropriate workload version');
+          console.log('Each .NET version (10.0 and 11.0) will auto-detect its appropriate workload version');
 
           try {
             await github.rest.actions.createWorkflowDispatch({
@@ -127,7 +130,7 @@ jobs:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
           console.log('Triggering build-docker-windows workflow - workload update(s) detected');
-          console.log('Each .NET version (9.0 and 10.0) will auto-detect its appropriate workload version');
+          console.log('Each .NET version (10.0 and 11.0) will auto-detect its appropriate workload version');
 
           try {
             await github.rest.actions.createWorkflowDispatch({
@@ -165,7 +168,7 @@ jobs:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
           console.log('Triggering build-emulators workflow - workload update(s) detected');
-          console.log('Each .NET version (9.0 and 10.0) will auto-detect its appropriate workload version');
+          console.log('Each .NET version (10.0 and 11.0) will auto-detect its appropriate workload version');
 
           try {
             await github.rest.actions.createWorkflowDispatch({
@@ -197,7 +200,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        dotnet_channel: ['9.0', '10.0']
+        # .NET 9.0 is retired from active builds. Add it here if it needs to be revived.
+        dotnet_channel: ['10.0', '11.0']
 
     steps:
     - name: 🚀 Trigger Tart VM Build for .NET ${{ matrix.dotnet_channel }}
@@ -242,7 +246,7 @@ jobs:
         echo "- **Force build:** ${{ needs.check-updates.outputs.force-build }}" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### Individual .NET Version Checks" >> $GITHUB_STEP_SUMMARY
-        echo "The workflow checked for workload updates for .NET 9.0 and 10.0 separately." >> $GITHUB_STEP_SUMMARY
+        echo "The workflow checked for workload updates for .NET 10.0 and 11.0 separately." >> $GITHUB_STEP_SUMMARY
         echo "Each .NET version auto-detects its appropriate workload version during builds." >> $GITHUB_STEP_SUMMARY
 
         if [[ "${{ needs.check-updates.outputs.trigger-builds }}" == "true" ]]; then

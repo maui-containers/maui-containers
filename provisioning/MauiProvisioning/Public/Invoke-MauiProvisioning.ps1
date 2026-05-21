@@ -1,7 +1,7 @@
 function Invoke-MauiProvisioning {
     [CmdletBinding()]
     param(
-        [string]$DotnetChannel = "9.0",
+        [string]$DotnetChannel = "10.0",
         [string]$WorkloadSetVersion = "",
         [string]$DotnetInstallDir,
         [string]$AndroidHome,

@@ -13,8 +13,8 @@ This directory contains Tart VM (Cirrus Labs Tart) infrastructure for building m
 # Build with .NET 10.0 (auto-resolves to tahoe + Xcode 26)
 pwsh ./scripts/build.ps1 -ImageType maui -DotnetChannel 10.0
 
-# Build with .NET 9.0 (auto-resolves to tahoe + Xcode 26)
-pwsh ./scripts/build.ps1 -ImageType maui -DotnetChannel 9.0
+# Build with .NET 11.0 Preview (auto-resolves to tahoe + Xcode 26.4)
+pwsh ./scripts/build.ps1 -ImageType maui -DotnetChannel 11.0
 
 # Build with additional Xcode versions installed
 pwsh ./scripts/build.ps1 -ImageType maui -DotnetChannel 10.0 -AdditionalXcodeVersions "16.4","16.1"
@@ -31,8 +31,8 @@ pwsh ./scripts/quick-start.ps1 -BuildType maui -DotnetChannel 10.0
 # Test .NET 10.0 image
 pwsh ./scripts/test.ps1 -ImageName maui-dev-tahoe-dotnet10.0 -TestType maui
 
-# Test .NET 9.0 image
-pwsh ./scripts/test.ps1 -ImageName maui-dev-tahoe-dotnet9.0 -TestType maui
+# Test .NET 11.0 Preview image
+pwsh ./scripts/test.ps1 -ImageName maui-dev-tahoe-dotnet11.0 -TestType maui
 ```
 
 ### VM Management
@@ -116,15 +116,15 @@ MAUI Development Image (maui.pkr.hcl)
 The build system automatically resolves macOS and Xcode versions based on the .NET channel:
 
 **Per-Channel Defaults** (defined in `config/platform-matrix.json`):
-- **.NET 9.0**: macOS Tahoe 16 + Xcode 26 (stable, pinned via SHA256)
-- **.NET 10.0**: macOS Tahoe 16 + Xcode 26 (preview/RC, pinned via SHA256)
+- **.NET 10.0**: macOS Tahoe 16 + Xcode 26.4 (stable, pinned via SHA256)
+- **.NET 11.0**: macOS Tahoe 16 + Xcode 26.4 (preview, pinned via SHA256)
 
 **Auto-Resolution**:
 - If `-MacOSVersion` not specified, uses the version defined for the .NET channel
 - If `-BaseXcodeVersion` not specified, uses the version defined for the .NET channel
 - If `-AdditionalXcodeVersions` not specified, uses the array defined in the .NET channel (default: empty)
 - Validates macOS/Xcode/.NET channel compatibility
-- Supports both stable (.NET 9.0) and preview (.NET 10.0) channels
+- Supports stable (.NET 10.0) and preview (.NET 11.0) channels; .NET 9.0 is retired in legacy config for possible revival.
 
 **Multiple Xcode Versions**:
 - **Base Xcode**: Comes from the upstream Cirrus Labs base image (e.g., `macos-tahoe-xcode:26@sha256:...`)
@@ -214,8 +214,8 @@ Tart VM images are automatically published to GitHub Container Registry (ghcr.io
 - Manually built with "Push to registry" enabled
 
 **Published Image Locations:**
-- `ghcr.io/maui-containers/maui-macos:tahoe-dotnet9.0` - .NET 9.0 MAUI development VM
 - `ghcr.io/maui-containers/maui-macos:tahoe-dotnet10.0` - .NET 10.0 MAUI development VM
+- `ghcr.io/maui-containers/maui-macos:tahoe-dotnet11.0` - .NET 11.0 Preview MAUI development VM
 
 **Authentication:** GitHub Actions uses `GITHUB_TOKEN` automatically. For local use, you need a GitHub Personal Access Token with `packages:write` permission.
 
@@ -246,7 +246,7 @@ tart run maui-dev-tahoe-dotnet10.0 --dir config:/path/to/config
 
 Build scripts accept:
 - `ImageType`: "maui" or "ci"
-- `DotnetChannel`: "9.0" or "10.0" (required - determines macOS/Xcode versions)
+- `DotnetChannel`: "10.0" or "11.0" (required - determines macOS/Xcode versions)
 - `MacOSVersion`: Auto-resolved from .NET channel (both currently use "tahoe")
 - `BaseXcodeVersion`: Auto-resolved from .NET channel (both currently use "@sha256:..." for pinning)
 - `AdditionalXcodeVersions`: Array of additional Xcode versions to install (e.g., `@("16.4", "16.1")`)

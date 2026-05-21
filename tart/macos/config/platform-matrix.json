@@ -6,7 +6,7 @@
             "RecommendedXcodeVersion": "26.4.1"
         }
     },
-    "DotnetChannels": {
+    "RetiredDotnetChannels": {
         "9.0": {
             "Channel": "9.0",
             "LTS": false,
@@ -21,8 +21,12 @@
                 "maccatalyst",
                 "tvos",
                 "macos"
-            ]
-        },
+            ],
+            "Retired": true,
+            "RetiredReason": "MAUI support policy ended for .NET 9.0. Move this entry back to DotnetChannels to revive it."
+        }
+    },
+    "DotnetChannels": {
         "10.0": {
             "Channel": "10.0",
             "LTS": false,
@@ -39,6 +43,23 @@
                 "macos"
             ],
             "IsPreview": false
+        },
+        "11.0": {
+            "Channel": "11.0",
+            "LTS": false,
+            "MacOSVersion": "tahoe",
+            "BaseXcodeVersion": "26.4.1",
+            "AdditionalXcodeVersions": [],
+            "MinMacOSVersion": "tahoe",
+            "SupportedWorkloads": [
+                "maui",
+                "android",
+                "ios",
+                "maccatalyst",
+                "tvos",
+                "macos"
+            ],
+            "IsPreview": true
         }
     }
 }

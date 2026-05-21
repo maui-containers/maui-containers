@@ -8,10 +8,10 @@ on:
         required: false
         type: string
       dotnet_versions:
-        description: 'JSON array of .NET versions to build (e.g., ["9.0", "10.0"])'
+        description: 'JSON array of .NET versions to build (e.g., ["10.0", "11.0"])'
         required: false
         type: string
-        default: '["9.0", "10.0"]'
+        default: '["10.0", "11.0"]'
   repository_dispatch:
     types: [trigger-docker-windows-build]
 
@@ -22,11 +22,12 @@ permissions:
 jobs:
   build-windows:
     name: 🪟 Build Windows (.NET ${{ matrix.DOTNET_VERSION }})
-    runs-on: windows-latest
+    runs-on: windows-2025
 
     strategy:
       matrix:
-        DOTNET_VERSION: ${{ fromJson(inputs.dotnet_versions || '["9.0", "10.0"]') }}
+        # .NET 9.0 is retired from active builds. Add "9.0" here if it needs to be revived.
+        DOTNET_VERSION: ${{ fromJson(inputs.dotnet_versions || '["10.0", "11.0"]') }}
 
     steps:
     - name: 🛒 Checkout

@@ -1,6 +1,6 @@
 Param(
     [String]$AndroidSdkApiLevel = 35,
-    [String]$DotnetVersion = "9.0",
+    [String]$DotnetVersion = "10.0",
     [String]$DockerRepository = "maui-containers/maui-emulator-linux",
     [String]$AdbKeyFolder = "$env:USERPROFILE/.android",
     [Int]$AdbPortMapping = 5555,

@@ -8,7 +8,7 @@ Param(
     [String]$AndroidSdkApiLevel=35,
     [String]$Version="latest",
     [String]$WorkloadSetVersion="",
-    [String]$DotnetVersion="9.0",
+    [String]$DotnetVersion="10.0",
     [String]$AppiumVersion="",
     [String]$AppiumUIAutomator2DriverVersion="",
     [String]$BuildSha="",
@@ -124,6 +124,9 @@ if ([string]::IsNullOrWhiteSpace($androidAvdDeviceType)) {
 
 # Extract the dotnet command version for Docker tags
 $dotnetCommandWorkloadSetVersion = $workloadInfo.DotnetCommandWorkloadSetVersion
+$dotnetImageTags = Get-DotnetContainerImageTags -DotnetVersion $DotnetVersion -DockerPlatform $DockerPlatform
+Write-Host "Using .NET SDK image tag: $($dotnetImageTags.Sdk)"
+Write-Host "Using .NET runtime image tag: $($dotnetImageTags.Runtime)"
 
 # Determine which Android SDK API level to use
 # Use the parameter provided, which could be from the matrix or a specific override
@@ -173,6 +176,8 @@ $commonArgs = @(
     "--build-arg", "APPIUM_UIAUTOMATOR2_DRIVER_VERSION=$AppiumUIAutomator2DriverVersion",
     "--build-arg", "JDK_MAJOR_VERSION=$androidJdkMajorVersion",
     "--build-arg", "DOTNET_VERSION=$DotnetVersion",
+    "--build-arg", "DOTNET_SDK_IMAGE_TAG=$($dotnetImageTags.Sdk)",
+    "--build-arg", "DOTNET_RUNTIME_IMAGE_TAG=$($dotnetImageTags.Runtime)",
     # Dynamic OCI labels with resolved build-time values
     "--label", "org.opencontainers.image.version=android$AndroidSdkApiLevel-$dotnetCommandWorkloadSetVersion",
     "--label", "org.opencontainers.image.created=$(Get-Date -Format 'o')",
@@ -216,6 +221,8 @@ try {
     if ($env:GITHUB_OUTPUT) {
         Write-Host "Writing version info to GITHUB_OUTPUT for build summary..."
         "dotnet_version=$DotnetVersion" >> $env:GITHUB_OUTPUT
+        "dotnet_sdk_image_tag=$($dotnetImageTags.Sdk)" >> $env:GITHUB_OUTPUT
+        "dotnet_runtime_image_tag=$($dotnetImageTags.Runtime)" >> $env:GITHUB_OUTPUT
         "workload_set_version=$dotnetCommandWorkloadSetVersion" >> $env:GITHUB_OUTPUT
         "android_api_level=$AndroidSdkApiLevel" >> $env:GITHUB_OUTPUT
         "android_build_tools=$androidBuildToolsVersion" >> $env:GITHUB_OUTPUT

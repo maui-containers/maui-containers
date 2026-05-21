@@ -1,6 +1,6 @@
 
 $buildArgs = @{
-  DotNetVersion     = "9.0"
+  DotNetVersion     = "10.0"
   Version           = "16091125574"
   DockerRepository  = "ghcr.io/maui-containers"
   DockerPlatform    = "linux/amd64"
@@ -11,5 +11,5 @@ if ("refs/heads/main" -eq "refs/heads/main") {
 }
 # Add workload set version if specified
 
-$buildArgs.WorkloadSetVersion = "9.301.1"
+$buildArgs.WorkloadSetVersion = "10.300.3"
 ./build.ps1 @buildArgs

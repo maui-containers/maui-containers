@@ -8,10 +8,10 @@ on:
         required: false
         type: string
       dotnet_versions:
-        description: 'JSON array of .NET versions to build (e.g., ["9.0", "10.0"])'
+        description: 'JSON array of .NET versions to build (e.g., ["10.0", "11.0"])'
         required: false
         type: string
-        default: '["10.0"]'
+        default: '["10.0", "11.0"]'
       android_api_levels:
         description: 'JSON array of Android API levels to build (e.g., [34, 35])'
         required: false
@@ -69,7 +69,8 @@ jobs:
         $dotnetVersions = if ($dotnetVersionsInput -ne "") {
           $dotnetVersionsInput | ConvertFrom-Json
         } else {
-          @("9.0", "10.0")
+          # .NET 9.0 is retired from active builds. Add it here if it needs to be revived.
+          @("10.0", "11.0")
         }
         $workloadApiLevels = @{}
         
@@ -103,7 +104,8 @@ jobs:
         $dotnetVersions = if ($dotnetVersionsInput -ne "") {
           $dotnetVersionsInput | ConvertFrom-Json
         } else {
-          @("9.0", "10.0")
+          # .NET 9.0 is retired from active builds. Add it here if it needs to be revived.
+          @("10.0", "11.0")
         }
         
         # Define API levels to use
@@ -111,7 +113,7 @@ jobs:
         $apiLevels = if ($apiLevelsInput -ne "") {
           $apiLevelsInput | ConvertFrom-Json
         } else {
-          @(23, 24, 25, 26, 28, 29, 30, 31, 32, 33, 34, 35)
+          @(23, 24, 25, 26, 28, 29, 30, 31, 32, 33, 34, 35, 36)
         }
         
         # Add workload-required API levels if not already in the list
@@ -260,5 +262,4 @@ jobs:
           echo "docker run --device /dev/kvm -p 4723:4723 -p 5554:5554 -p 5555:5555 $FIRST_TAG" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
         fi
-
 

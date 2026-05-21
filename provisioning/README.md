@@ -10,11 +10,11 @@ The `provision.ps1` script bootstraps a developer workstation with the same tool
 
 ## Usage
 ```powershell
-pwsh ./provisioning/provision.ps1 -DotnetChannel 9.0
+pwsh ./provisioning/provision.ps1 -DotnetChannel 10.0
 ```
 
 Key parameters:
-- `-DotnetChannel` (default `9.0`): .NET channel to install. The script resolves the matching workload set automatically.
+- `-DotnetChannel` (default `10.0`): .NET channel to install. The script resolves the matching workload set automatically.
 - `-WorkloadSetVersion`: Pin to a specific workload set version if you do not want the latest published value.
 - `-DotnetInstallDir`: Override where the .NET SDK is laid down. Defaults to `~/.dotnet`.
 - `-AndroidHome`: Override where Android SDK components are stored. Defaults to `~/Library/Android/sdk`.
@@ -31,7 +31,7 @@ The automation lives in the `MauiProvisioning` module under `provisioning/`. The
 
 ```powershell
 Import-Module ./provisioning/MauiProvisioning/MauiProvisioning.psd1
-Invoke-MauiProvisioning -DotnetChannel 9.0 -DryRun
+Invoke-MauiProvisioning -DotnetChannel 11.0 -DryRun
 ```
 
 `Invoke-MauiProvisioning` is the public entry point used by `provision.ps1`; helper functions such as `Ensure-BrewTap` and `Get-AndroidInstalledPackages` live in the `Private/` folder for easier maintenance.

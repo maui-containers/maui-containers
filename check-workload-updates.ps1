@@ -10,7 +10,7 @@
     variables to indicate whether new builds should be triggered.
 
 .PARAMETER DotnetVersion
-    The .NET version to check for workload sets. Defaults to "9.0".
+    The .NET version to check for workload sets. Defaults to "10.0".
 
 .PARAMETER LinuxDockerRepository
     The Linux Docker repository to check for existing tags. Defaults to "ghcr.io/maui-containers/maui-linux".
@@ -24,15 +24,15 @@
 .PARAMETER TagPattern
     The tag pattern to look for. The script will replace placeholders with actual values:
     - {platform}: 'linux' or 'windows' 
-    - {dotnet_version}: The .NET version (e.g., '9.0')
-    - {workload_version}: The workload set version (e.g., '9.0.301.1')
+    - {dotnet_version}: The .NET version (e.g., '10.0')
+    - {workload_version}: The workload set version (e.g., '10.0.300.3')
     Defaults to "{platform}-dotnet{dotnet_version}-workloads{workload_version}".
 
 .PARAMETER TestTagPattern
     The test tag pattern to look for. Includes Android API level support:
     - {platform}: 'appium-emulator-linux'
-    - {dotnet_version}: The .NET version (e.g., '9.0')
-    - {workload_version}: The workload set version (e.g., '9.0.301.1')
+    - {dotnet_version}: The .NET version (e.g., '10.0')
+    - {workload_version}: The workload set version (e.g., '10.0.300.3')
     - {api_level}: Android API level (e.g., '35')
     Defaults to "{platform}-dotnet{dotnet_version}-workloads{workload_version}-android{api_level}".
 
@@ -48,15 +48,15 @@
     .\check-workload-updates.ps1
     
 .EXAMPLE
-    .\check-workload-updates.ps1 -DotnetVersion "9.0" -LinuxDockerRepository "ghcr.io/myorg/maui-linux" -WindowsDockerRepository "ghcr.io/myorg/maui-windows" -OutputFormat "object"
+    .\check-workload-updates.ps1 -DotnetVersion "10.0" -LinuxDockerRepository "ghcr.io/myorg/maui-linux" -WindowsDockerRepository "ghcr.io/myorg/maui-windows" -OutputFormat "object"
 
 .EXAMPLE
-    .\check-workload-updates.ps1 -ForceBuild -DotnetVersion "9.0"
+    .\check-workload-updates.ps1 -ForceBuild -DotnetVersion "11.0"
 #>
 
 param(
     [Parameter(Position = 0)]
-    [string]$DotnetVersion = "9.0",
+    [string]$DotnetVersion = "10.0",
 
     [Parameter(Position = 1)]
     [string]$LinuxDockerRepository = "ghcr.io/maui-containers/maui-linux",
