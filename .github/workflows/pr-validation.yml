@@ -267,6 +267,7 @@ jobs:
         Get-PSDrive -PSProvider FileSystem | Format-Table Name, @{N='Free(GB)';E={[math]::Round($_.Free/1GB,1)}}, @{N='Used(GB)';E={[math]::Round($_.Used/1GB,1)}}
 
     - name: 🔨 Build Docker image
+      id: build_base_image
       shell: pwsh
       run: |
         Write-Host "Building Docker image for .NET ${{ matrix.dotnet_version }} on ${{ matrix.platform }}"
@@ -281,10 +282,25 @@ jobs:
         }
         ./docker/build.ps1 @buildArgs
 
+    - name: 🏷️ Resolve base image tag
+      id: base_image
+      shell: pwsh
+      run: |
+        $imageTags = "${{ steps.build_base_image.outputs.image_tags }}" -split '\|' | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+        $imageName = $imageTags | Where-Object { $_ -like "${{ env.DOCKER_REPOSITORY_BASE }}:*-pr-test" } | Select-Object -First 1
+
+        if (-not $imageName) {
+          Write-Error "Could not resolve PR validation image tag from build outputs: $($imageTags -join ', ')"
+          exit 1
+        }
+
+        Write-Host "Resolved validation image: $imageName"
+        "image_name=$imageName" >> $env:GITHUB_OUTPUT
+
     - name: 🔍 Validate Docker image
       shell: pwsh
       run: |
-        $imageName = "${{ env.DOCKER_REPOSITORY_BASE }}:dotnet${{ matrix.dotnet_version }}-pr-test"
+        $imageName = "${{ steps.base_image.outputs.image_name }}"
         Write-Host "Validating image: $imageName"
         $imageExists = docker images --format "{{.Repository}}:{{.Tag}}" | Select-String -Pattern "$imageName"
         if ($imageExists) {
@@ -301,7 +317,7 @@ jobs:
       shell: pwsh
       run: |
         # Construct image name
-        $imageName = "${{ env.DOCKER_REPOSITORY_BASE }}:dotnet${{ matrix.dotnet_version }}-pr-test"
+        $imageName = "${{ steps.base_image.outputs.image_name }}"
 
         Write-Host "Testing basic functionality of: $imageName"
         
@@ -377,7 +393,7 @@ jobs:
       shell: pwsh
       run: |
         # Construct image name
-        $imageName = "${{ env.DOCKER_REPOSITORY_BASE }}:dotnet${{ matrix.dotnet_version }}-pr-test"
+        $imageName = "${{ steps.base_image.outputs.image_name }}"
 
         Write-Host "Verifying runner functionality is absent: $imageName"
 
@@ -422,6 +438,7 @@ jobs:
 
     - name: 🔨 Build test image
       if: matrix.build_test == 'true'
+      id: build_test_image
       shell: pwsh
       run: |
         Write-Host "Building test image for .NET ${{ matrix.dotnet_version }} on ${{ matrix.platform }}"
@@ -440,11 +457,27 @@ jobs:
         }
         ./docker/test/build.ps1 @buildArgs
 
+    - name: 🏷️ Resolve test image tag
+      if: matrix.build_test == 'true'
+      id: test_image
+      shell: pwsh
+      run: |
+        $imageTags = "${{ steps.build_test_image.outputs.image_tags }}" -split '\|' | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+        $imageName = $imageTags | Where-Object { $_ -like "${{ env.DOCKER_REPOSITORY_TEST }}:*-pr-test" } | Select-Object -First 1
+
+        if (-not $imageName) {
+          Write-Error "Could not resolve PR validation test image tag from build outputs: $($imageTags -join ', ')"
+          exit 1
+        }
+
+        Write-Host "Resolved validation test image: $imageName"
+        "image_name=$imageName" >> $env:GITHUB_OUTPUT
+
     - name: 🔍 Validate test image
       if: matrix.build_test == 'true'
       shell: pwsh
       run: |
-        $imageName = "${{ env.DOCKER_REPOSITORY_TEST }}:android${{ matrix.android_api_level }}-dotnet${{ matrix.dotnet_version }}-pr-test"
+        $imageName = "${{ steps.test_image.outputs.image_name }}"
         Write-Host "Validating image: $imageName"
         $imageExists = docker images --format "{{.Repository}}:{{.Tag}}" | Select-String -Pattern "$imageName"
         if ($imageExists) {
@@ -460,7 +493,7 @@ jobs:
       shell: pwsh
       run: |
         # Construct image name
-        $imageName = "${{ env.DOCKER_REPOSITORY_TEST }}:android${{ matrix.android_api_level }}-dotnet${{ matrix.dotnet_version }}-pr-test"
+        $imageName = "${{ steps.test_image.outputs.image_name }}"
 
         Write-Host "Testing Appium/Emulator functionality of: $imageName"
         
@@ -495,7 +528,7 @@ jobs:
       run: |
         set -euo pipefail
 
-        IMAGE="${{ env.DOCKER_REPOSITORY_TEST }}:android${{ matrix.android_api_level }}-dotnet${{ matrix.dotnet_version }}-pr-test"
+        IMAGE="${{ steps.test_image.outputs.image_name }}"
         CONTAINER_NAME="emulator-smoke-$$"
         BOOT_TIMEOUT=360
         APPIUM_TIMEOUT=60

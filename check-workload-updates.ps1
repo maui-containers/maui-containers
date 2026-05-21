@@ -22,19 +22,10 @@
     The test Docker repository to check for existing tags. Defaults to "ghcr.io/maui-containers/maui-emulator-linux".
 
 .PARAMETER TagPattern
-    The tag pattern to look for. The script will replace placeholders with actual values:
-    - {platform}: 'linux' or 'windows' 
-    - {dotnet_version}: The .NET version (e.g., '10.0')
-    - {workload_version}: The workload set version (e.g., '10.0.300.3')
-    Defaults to "{platform}-dotnet{dotnet_version}-workloads{workload_version}".
+    Deprecated compatibility parameter. Expected base image tags are generated from the shared tag helpers.
 
 .PARAMETER TestTagPattern
-    The test tag pattern to look for. Includes Android API level support:
-    - {platform}: 'appium-emulator-linux'
-    - {dotnet_version}: The .NET version (e.g., '10.0')
-    - {workload_version}: The workload set version (e.g., '10.0.300.3')
-    - {api_level}: Android API level (e.g., '35')
-    Defaults to "{platform}-dotnet{dotnet_version}-workloads{workload_version}-android{api_level}".
+    Deprecated compatibility parameter. Expected emulator tags are generated from the shared tag helpers.
 
 .PARAMETER OutputFormat
     The output format. Use "github-actions" for GitHub Actions environment variables,
@@ -177,19 +168,18 @@ function Test-TestRepositoryBuilds {
 
         Write-HostWithPrefix "Found $($existingTags.Count) test repository tags"
         
-        # Create test tag patterns for common API levels (we check for any Android API level)
-        # The test tag pattern is: appium-emulator-linux-dotnet{version}-workloads{workload}-android{api}
-        $testPlatform = "appium-emulator-linux"
-        $testTagPattern = $TagPattern -replace '\{platform\}', $testPlatform -replace '\{dotnet_version\}', $DotnetVersion -replace '\{workload_version\}', $WorkloadVersion
+        # Check for any Android API level using the exact workload tag emitted by docker/test/build.ps1.
+        $dotnetTagPrefixInfo = Get-DotnetTagPrefixInfo -DotnetVersion $DotnetVersion -WorkloadVersion $WorkloadVersion
+        $testTagPattern = "android\d+-$([regex]::Escape($dotnetTagPrefixInfo.Channel))-workloads$([regex]::Escape($WorkloadVersion))"
         
         # Check if any tag matches the pattern with any API level
         $matchingTags = $existingTags | Where-Object { 
-            $_ -match "^$($testTagPattern -replace '\{api_level\}', '\d+')" 
+            $_ -match "^$testTagPattern$"
         }
         
         $hasTestBuilds = $matchingTags.Count -gt 0
         
-        Write-HostWithPrefix "Test tag pattern (with API level): $($testTagPattern -replace '\{api_level\}', 'XX')"
+        Write-HostWithPrefix "Test tag pattern (with API level): $($testTagPattern -replace '\\d\+', 'XX')"
         Write-HostWithPrefix "Matching test tags found: $($matchingTags.Count)"
         if ($matchingTags.Count -gt 0 -and $matchingTags.Count -le 5) {
             Write-HostWithPrefix "Sample matching tags: $($matchingTags -join ', ')"
@@ -214,9 +204,9 @@ function Test-BaseRepositoryBuilds {
         [string]$WorkloadVersion
     )
     
-    # Build the expected tag format (without platform prefix)
-    # Actual tags are: dotnet{version}-workloads{workload_version}
-    $expectedTag = "dotnet$DotnetVersion-workloads$WorkloadVersion"
+    # Build the expected tag format emitted by docker/build.ps1.
+    $dotnetTagPrefixInfo = Get-DotnetTagPrefixInfo -DotnetVersion $DotnetVersion -WorkloadVersion $WorkloadVersion
+    $expectedTag = "$($dotnetTagPrefixInfo.Channel)-workloads$WorkloadVersion"
     
     Write-HostWithPrefix "Checking Linux repository: $LinuxRepository"
     $hasLinuxBase = $false
@@ -377,9 +367,10 @@ try {
         Write-HostWithPrefix "Warning: iOS workload information not found in workload set data"
     }
 
-    # Create expected tag patterns for both platforms
-    $linuxTag = $TagPattern -replace '\{platform\}', 'linux' -replace '\{dotnet_version\}', $DotnetVersion -replace '\{workload_version\}', $dotnetCommandWorkloadSetVersion
-    $windowsTag = $TagPattern -replace '\{platform\}', 'windows' -replace '\{dotnet_version\}', $DotnetVersion -replace '\{workload_version\}', $dotnetCommandWorkloadSetVersion
+    # Create expected exact workload tags for both platform repositories.
+    $dotnetTagPrefixInfo = Get-DotnetTagPrefixInfo -DotnetVersion $DotnetVersion -WorkloadVersion $dotnetCommandWorkloadSetVersion
+    $linuxTag = "$($dotnetTagPrefixInfo.Channel)-workloads$dotnetCommandWorkloadSetVersion"
+    $windowsTag = $linuxTag
     
     Write-HostWithPrefix "Looking for Linux tag: $linuxTag"
     Write-HostWithPrefix "Looking for Windows tag: $windowsTag"
@@ -431,8 +422,9 @@ try {
         
         # In error case, still set the tag values if we have them
         if ($latestVersion -and $dotnetCommandWorkloadSetVersion) {
-            $linuxTag = $TagPattern -replace '\{platform\}', 'linux' -replace '\{dotnet_version\}', $DotnetVersion -replace '\{workload_version\}', $dotnetCommandWorkloadSetVersion
-            $windowsTag = $TagPattern -replace '\{platform\}', 'windows' -replace '\{dotnet_version\}', $DotnetVersion -replace '\{workload_version\}', $dotnetCommandWorkloadSetVersion
+            $dotnetTagPrefixInfo = Get-DotnetTagPrefixInfo -DotnetVersion $DotnetVersion -WorkloadVersion $dotnetCommandWorkloadSetVersion
+            $linuxTag = "$($dotnetTagPrefixInfo.Channel)-workloads$dotnetCommandWorkloadSetVersion"
+            $windowsTag = $linuxTag
         }
         
         # Always trigger builds on error or when force build is specified

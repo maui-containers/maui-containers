@@ -389,6 +389,82 @@ function Get-WorkloadBandTag {
     return "$majorVersion.$minorVersion.$bandAlias"
 }
 
+function Get-DotnetPrereleaseTagSuffixes {
+    param (
+        [string]$Version
+    )
+
+    $result = [PSCustomObject]@{
+        IsPrerelease = $false
+        ChannelSuffix = ""
+        SpecificSuffix = ""
+        Label = ""
+        Number = ""
+    }
+
+    if ([string]::IsNullOrWhiteSpace($Version)) {
+        return $result
+    }
+
+    if ($Version -notmatch '^[^-]+-(?<label>[A-Za-z][A-Za-z0-9]*)(?:\.(?<number>\d+))?') {
+        return $result
+    }
+
+    $label = $Matches['label'].ToLowerInvariant()
+    $number = ""
+    if ($Matches.ContainsKey('number')) {
+        $number = $Matches['number']
+    }
+
+    $specificSuffix = "-$label"
+    if (-not [string]::IsNullOrWhiteSpace($number)) {
+        $specificSuffix = "-$label$number"
+    }
+
+    return [PSCustomObject]@{
+        IsPrerelease = $true
+        ChannelSuffix = "-$label"
+        SpecificSuffix = $specificSuffix
+        Label = $label
+        Number = $number
+    }
+}
+
+function Get-DotnetTagPrefixInfo {
+    param (
+        [string]$DotnetVersion,
+        [string]$WorkloadVersion,
+        [string]$Prefix = ""
+    )
+
+    if ([string]::IsNullOrWhiteSpace($DotnetVersion)) {
+        throw "DotnetVersion is required to build image tags."
+    }
+
+    $baseTag = "${Prefix}dotnet$DotnetVersion"
+    $prereleaseSuffixes = Get-DotnetPrereleaseTagSuffixes -Version $WorkloadVersion
+
+    if (-not $prereleaseSuffixes.IsPrerelease) {
+        return [PSCustomObject]@{
+            Base = $baseTag
+            Channel = $baseTag
+            Specific = $baseTag
+            IsPrerelease = $false
+            PrereleaseLabel = ""
+            PrereleaseNumber = ""
+        }
+    }
+
+    return [PSCustomObject]@{
+        Base = $baseTag
+        Channel = "$baseTag$($prereleaseSuffixes.ChannelSuffix)"
+        Specific = "$baseTag$($prereleaseSuffixes.SpecificSuffix)"
+        IsPrerelease = $true
+        PrereleaseLabel = $prereleaseSuffixes.Label
+        PrereleaseNumber = $prereleaseSuffixes.Number
+    }
+}
+
 function Get-DotnetContainerImageTags {
     param (
         [string]$DotnetVersion,

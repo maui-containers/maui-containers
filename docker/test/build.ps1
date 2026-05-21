@@ -134,29 +134,52 @@ Write-Host "Using Android SDK API Level: $AndroidSdkApiLevel (from parameter/mat
 Write-Host "Workload default API Level: $($androidDetails.ApiLevel) (will be available in the built image)"
 
 # Build tags following the unified naming scheme:
-# - android{XX}-dotnet{X.Y} - Latest workload for this .NET version
-# - android{XX}-dotnet{X.Y}-workloads{X.Y.Z} - Specific workload version
-# - android{XX}-dotnet{X.Y}-workloads{X.Y.Z}-v{sha} - SHA-pinned version (optional)
+# - android{XX}-dotnet{X.Y} for stable, android{XX}-dotnet{X.Y}-{prerelease} for prerelease channels
+# - android{XX}-dotnet{X.Y}-{prereleaseN} for a specific prerelease wave
+# - android{XX}-dotnet{tag}-workloads{X.Y.Z} - Specific workload version
+# - android{XX}-dotnet{specific-tag}-workloads{X.Y.Z}-v{sha} - SHA-pinned version (optional)
 # If Version is not "latest", also add a custom version tag
 $tags = @()
+$workloadBandTagVersion = Get-WorkloadBandTag -WorkloadVersion $dotnetCommandWorkloadSetVersion
+$dotnetTagPrefixInfo = Get-DotnetTagPrefixInfo -DotnetVersion $DotnetVersion -WorkloadVersion $dotnetCommandWorkloadSetVersion -Prefix "android${AndroidSdkApiLevel}-"
 
-# 1. android{XX}-dotnet{X.Y} tag (this is the "latest" for this .NET version + API level)
-$dotnetTag = "${DockerRepository}:android${AndroidSdkApiLevel}-dotnet${DotnetVersion}"
+# 1. android{XX}-dotnet{tag} tag (this is the "latest" for this .NET version/channel + API level)
+$dotnetTag = "${DockerRepository}:$($dotnetTagPrefixInfo.Channel)"
 $tags += $dotnetTag
 
-# 2. android{XX}-dotnet{X.Y}-workloads{X.Y.Z} tag
-$workloadTag = "${DockerRepository}:android${AndroidSdkApiLevel}-dotnet${DotnetVersion}-workloads${dotnetCommandWorkloadSetVersion}"
+# 2. Optional: android{XX}-dotnet{specific-prerelease} tag (e.g. android36-dotnet11.0-preview4)
+if ($dotnetTagPrefixInfo.Specific -ne $dotnetTagPrefixInfo.Channel) {
+    $specificDotnetTag = "${DockerRepository}:$($dotnetTagPrefixInfo.Specific)"
+    $tags += $specificDotnetTag
+}
+
+# 3. android{XX}-dotnet{tag}-workloads{X.Y.Z} tag
+$workloadTag = "${DockerRepository}:$($dotnetTagPrefixInfo.Channel)-workloads${dotnetCommandWorkloadSetVersion}"
 $tags += $workloadTag
 
-# 3. Optional: android{XX}-dotnet{X.Y}-workloads{X.Y.Z}-v{sha} tag
+# 4. Optional: prerelease rolling workload band tag
+if ($dotnetTagPrefixInfo.IsPrerelease -and $workloadBandTagVersion) {
+    $workloadBandTag = "${DockerRepository}:$($dotnetTagPrefixInfo.Channel)-workloads${workloadBandTagVersion}"
+    if ($tags -notcontains $workloadBandTag) {
+        $tags += $workloadBandTag
+    }
+}
+
+# 5. Optional: android{XX}-dotnet{specific-prerelease}-workloads{X.Y.Z} tag
+if ($dotnetTagPrefixInfo.Specific -ne $dotnetTagPrefixInfo.Channel) {
+    $specificWorkloadTag = "${DockerRepository}:$($dotnetTagPrefixInfo.Specific)-workloads${dotnetCommandWorkloadSetVersion}"
+    $tags += $specificWorkloadTag
+}
+
+# 6. Optional: android{XX}-dotnet{specific-tag}-workloads{X.Y.Z}-v{sha} tag
 if ($BuildSha) {
-    $shaTag = "${DockerRepository}:android${AndroidSdkApiLevel}-dotnet${DotnetVersion}-workloads${dotnetCommandWorkloadSetVersion}-v${BuildSha}"
+    $shaTag = "${DockerRepository}:$($dotnetTagPrefixInfo.Specific)-workloads${dotnetCommandWorkloadSetVersion}-v${BuildSha}"
     $tags += $shaTag
 }
 
-# 4. Optional: Custom version tag (for PR builds, etc.)
+# 7. Optional: Custom version tag (for PR builds, etc.)
 if ($Version -ne "latest") {
-    $customTag = "${DockerRepository}:android${AndroidSdkApiLevel}-dotnet${DotnetVersion}-${Version}"
+    $customTag = "${DockerRepository}:$($dotnetTagPrefixInfo.Specific)-${Version}"
     $tags += $customTag
 }
 

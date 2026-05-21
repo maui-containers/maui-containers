@@ -83,39 +83,53 @@ if (-not (Test-Path -Path $contextPath -PathType Container)) {
 Write-Host "Using build context: $contextPath"
 
 # Build tags following the unified naming scheme:
-# - dotnet{X.Y} - Latest workload for this .NET version
-# - dotnet{X.Y}-workloads{X.Y.Z} - Specific workload version
-# - dotnet{X.Y}-workloads{X.Y.Nxx} - Rolling workload band alias (e.g. 10.0.2xx)
-# - dotnet{X.Y}-workloads{X.Y.Z}-v{sha} - SHA-pinned version (optional)
+# - dotnet{X.Y} for stable, dotnet{X.Y}-{prerelease} for prerelease channels
+# - dotnet{X.Y}-{prereleaseN} for a specific prerelease wave
+# - dotnet{tag}-workloads{X.Y.Z} - Specific workload version
+# - dotnet{tag}-workloads{X.Y.Nxx} - Rolling workload band alias (e.g. 10.0.2xx)
+# - dotnet{specific-tag}-workloads{X.Y.Z}-v{sha} - SHA-pinned version (optional)
 # If Version is not "latest", also add a custom version tag
 $tags = @()
 $workloadBandTagVersion = Get-WorkloadBandTag -WorkloadVersion $dotnetCommandWorkloadSetVersion
+$dotnetTagPrefixInfo = Get-DotnetTagPrefixInfo -DotnetVersion $DotnetVersion -WorkloadVersion $dotnetCommandWorkloadSetVersion
 
-# 1. dotnet{X.Y} tag (this is the "latest" for this .NET version)
-$dotnetTag = "$DockerRepository`:dotnet$DotnetVersion"
+# 1. dotnet{tag} tag (this is the "latest" for this .NET version/channel)
+$dotnetTag = "$($DockerRepository):$($dotnetTagPrefixInfo.Channel)"
 $tags += $dotnetTag
 
-# 2. dotnet{X.Y}-workloads{X.Y.Z} tag
-$workloadTag = "$DockerRepository`:dotnet$DotnetVersion-workloads$dotnetCommandWorkloadSetVersion"
+# 2. Optional: dotnet{specific-prerelease} tag (e.g. dotnet11.0-preview4)
+if ($dotnetTagPrefixInfo.Specific -ne $dotnetTagPrefixInfo.Channel) {
+    $specificDotnetTag = "$($DockerRepository):$($dotnetTagPrefixInfo.Specific)"
+    $tags += $specificDotnetTag
+}
+
+# 3. dotnet{tag}-workloads{X.Y.Z} tag
+$workloadTag = "$($DockerRepository):$($dotnetTagPrefixInfo.Channel)-workloads$dotnetCommandWorkloadSetVersion"
 $tags += $workloadTag
 
-# 3. Optional: dotnet{X.Y}-workloads{X.Y.Nxx} rolling band tag
+# 4. Optional: dotnet{tag}-workloads{X.Y.Nxx} rolling band tag
 if ($workloadBandTagVersion) {
-    $workloadBandTag = "$DockerRepository`:dotnet$DotnetVersion-workloads$workloadBandTagVersion"
+    $workloadBandTag = "$($DockerRepository):$($dotnetTagPrefixInfo.Channel)-workloads$workloadBandTagVersion"
     if ($tags -notcontains $workloadBandTag) {
         $tags += $workloadBandTag
     }
 }
 
-# 4. Optional: dotnet{X.Y}-workloads{X.Y.Z}-v{sha} tag
+# 5. Optional: dotnet{specific-prerelease}-workloads{X.Y.Z} tag
+if ($dotnetTagPrefixInfo.Specific -ne $dotnetTagPrefixInfo.Channel) {
+    $specificWorkloadTag = "$($DockerRepository):$($dotnetTagPrefixInfo.Specific)-workloads$dotnetCommandWorkloadSetVersion"
+    $tags += $specificWorkloadTag
+}
+
+# 6. Optional: dotnet{specific-tag}-workloads{X.Y.Z}-v{sha} tag
 if ($BuildSha) {
-    $shaTag = "$DockerRepository`:dotnet$DotnetVersion-workloads$dotnetCommandWorkloadSetVersion-v$BuildSha"
+    $shaTag = "$($DockerRepository):$($dotnetTagPrefixInfo.Specific)-workloads$dotnetCommandWorkloadSetVersion-v$BuildSha"
     $tags += $shaTag
 }
 
-# 5. Optional: Custom version tag (for PR builds, etc.)
+# 7. Optional: Custom version tag (for PR builds, etc.)
 if ($Version -ne "latest") {
-    $customTag = "$DockerRepository`:dotnet$DotnetVersion-$Version"
+    $customTag = "$($DockerRepository):$($dotnetTagPrefixInfo.Specific)-$Version"
     $tags += $customTag
 }
 
