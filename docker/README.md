@@ -36,7 +36,7 @@ These base images can be used in two modes:
 ### As a Development Container
 
 ```bash
-docker run -it ghcr.io/maui-containers/maui-linux:dotnet9.0 bash
+docker run -it ghcr.io/maui-containers/maui-linux:dotnet10.0 bash
 ```
 
 ### With Custom Startup Logic
@@ -45,13 +45,13 @@ docker run -it ghcr.io/maui-containers/maui-linux:dotnet9.0 bash
 docker run -it \
   -v "$PWD/config:/config" \
   -e INIT_BASH_SCRIPT=/config/init.sh \
-  ghcr.io/maui-containers/maui-linux:dotnet9.0
+  ghcr.io/maui-containers/maui-linux:dotnet10.0
 ```
 
 ### Example Dockerfile using the base image:
 
 ```dockerfile
-FROM ghcr.io/maui-containers/maui-linux:dotnet9.0
+FROM ghcr.io/maui-containers/maui-linux:dotnet10.0
 
 # Add your custom requirements here
 COPY your-app /app

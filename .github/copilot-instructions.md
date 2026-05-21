@@ -12,7 +12,7 @@ This repository provides development environments for .NET MAUI across multiple 
 **Repository Size**: Small (~50 files)  
 **Languages**: PowerShell (primary), Dockerfile, YAML  
 **Platforms**: Linux (amd64), Windows (amd64)  
-**Target Runtimes**: .NET 9.0, Docker containers  
+**Target Runtimes**: .NET 10.0 and .NET 11.0 preview, Docker containers
 **Published Images**: GitHub Container Registry (`maui-containers/maui-linux`, `maui-containers/maui-windows`, `maui-containers/maui-macos`, `maui-containers/maui-emulator-linux`)
 
 ## Build Instructions - CRITICAL REQUIREMENTS
@@ -33,12 +33,12 @@ pwsh ./script-name.ps1 [parameters]
 **Test PowerShell Functions (Validates Environment):**
 ```bash
 pwsh -Command ". ./common-functions.ps1; Get-LatestAppiumVersions"
-pwsh -Command ". ./common-functions.ps1; Find-LatestWorkloadSet -DotnetVersion '9.0'"
+pwsh -Command ". ./common-functions.ps1; Find-LatestWorkloadSet -DotnetVersion '11.0'"
 ```
 
 **Build Docker Images (Linux - Works in Docker environments):**
 ```bash
-pwsh ./docker/build.ps1 -DotnetVersion "9.0" -DockerPlatform "linux/amd64" -DockerRepository "test/maui-build" -Load
+pwsh ./docker/build.ps1 -DotnetVersion "11.0" -DockerPlatform "linux/amd64" -DockerRepository "test/maui-build" -Load
 ```
 
 **Build Emulator Images:**
@@ -152,7 +152,7 @@ Test Image (Base + Appium/Emulator)
 ## Validation Steps for Changes
 
 **Before Making Changes:**
-1. Test PowerShell functions: `pwsh -Command ". ./common-functions.ps1; Find-LatestWorkloadSet -DotnetVersion '9.0'"`
+1. Test PowerShell functions: `pwsh -Command ". ./common-functions.ps1; Find-LatestWorkloadSet -DotnetVersion '11.0'"`
 2. Verify Docker: `docker --version`
 3. Check workflow syntax: GitHub Actions validates on push
 

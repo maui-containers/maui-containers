@@ -10,20 +10,25 @@
 # - Automatic service startup on container launch
 # - Support for nested virtualization (requires --device /dev/kvm)
 
-# Set .NET version build arg (supports 9.0, 10.0, etc.)
-ARG DOTNET_VERSION=9.0
+# Set .NET version build args
+ARG DOTNET_VERSION=10.0
+ARG DOTNET_SDK_IMAGE_TAG=10.0-resolute
+ARG DOTNET_RUNTIME_IMAGE_TAG=10.0-resolute
 
 # Use .NET SDK base image
-FROM mcr.microsoft.com/dotnet/sdk:${DOTNET_VERSION}-noble AS env-builder
+FROM mcr.microsoft.com/dotnet/sdk:${DOTNET_SDK_IMAGE_TAG} AS env-builder
 
 # Install Android SDK Tool
 RUN dotnet tool install -g AndroidSdk.Tool
 
 # Start the main image
-FROM mcr.microsoft.com/dotnet/runtime:${DOTNET_VERSION}-noble
+FROM mcr.microsoft.com/dotnet/runtime:${DOTNET_RUNTIME_IMAGE_TAG}
 
 # Set build arguments
 ARG TARGETARCH
+ARG DOTNET_VERSION=10.0
+ARG DOTNET_SDK_IMAGE_TAG=10.0-resolute
+ARG DOTNET_RUNTIME_IMAGE_TAG=10.0-resolute
 
 ARG JDK_MAJOR_VERSION=21
 ARG ANDROID_SDK_API_LEVEL=35
@@ -94,7 +99,7 @@ ENV NODE_VERSION=lts.x \
     ANDROID_SDK_ROOT=/home/mauiusr/android-sdk \
     DEBIAN_FRONTEND=noninteractive \
     LOG_PATH=/logs \
-    JAVA_HOME="/usr/lib/jvm/msopenjdk-${JDK_MAJOR_VERSION}-${TARGETARCH}"
+    JAVA_HOME="/usr/lib/jvm/maui-openjdk-${JDK_MAJOR_VERSION}"
 
 ENV PATH="${ANDROID_HOME}/platform-tools:${ANDROID_HOME}/emulator:${ANDROID_HOME}/cmdline-tools/${ANDROID_SDK_CMDLINE_TOOLS_VERSION}/bin:${PATH}"
 
@@ -150,13 +155,35 @@ RUN chmod -R +x /home/mauiusr/.dotnet/tools/* && \
     chown -R 1400:1401 /home/mauiusr/.dotnet
 ENV PATH="/home/mauiusr/.dotnet/tools:${PATH}"
 
-# Install Microsoft Packages: MS OpenJDK and Powershell
+# Install Java and PowerShell. Resolute images can publish before every
+# Microsoft apt package is available, so use distro OpenJDK and the official
+# PowerShell tarball as fallbacks.
 RUN ubuntu_release=$(lsb_release -rs) \
     && wget "https://packages.microsoft.com/config/ubuntu/${ubuntu_release}/packages-microsoft-prod.deb" -O packages-microsoft-prod.deb \
     && dpkg -i packages-microsoft-prod.deb \
     && rm packages-microsoft-prod.deb \
     && apt-get update \
-    && apt-get install -y msopenjdk-${JDK_MAJOR_VERSION} powershell \
+    && if apt-cache show "msopenjdk-${JDK_MAJOR_VERSION}" >/dev/null 2>&1; then \
+        jdk_package="msopenjdk-${JDK_MAJOR_VERSION}"; \
+    else \
+        jdk_package="openjdk-${JDK_MAJOR_VERSION}-jdk"; \
+    fi \
+    && apt-get install -y "$jdk_package" \
+    && javac_path="$(readlink -f "$(command -v javac)")" \
+    && actual_java_home="$(dirname "$(dirname "$javac_path")")" \
+    && ln -sfn "$actual_java_home" "$JAVA_HOME" \
+    && if apt-cache show powershell >/dev/null 2>&1; then \
+        apt-get install -y powershell; \
+    else \
+        pwsh_arch="$TARGETARCH"; \
+        if [ "$pwsh_arch" = "amd64" ]; then pwsh_arch="x64"; fi; \
+        pwsh_version="$(curl -fsSL https://api.github.com/repos/PowerShell/PowerShell/releases/latest | sed -n 's/.*"tag_name": "v\([^"]*\)".*/\1/p' | head -1)"; \
+        test -n "$pwsh_version"; \
+        mkdir -p /opt/microsoft/powershell/7; \
+        curl -fsSL "https://github.com/PowerShell/PowerShell/releases/download/v${pwsh_version}/powershell-${pwsh_version}-linux-${pwsh_arch}.tar.gz" | tar zxf - -C /opt/microsoft/powershell/7; \
+        chmod +x /opt/microsoft/powershell/7/pwsh; \
+        ln -sf /opt/microsoft/powershell/7/pwsh /usr/bin/pwsh; \
+    fi \
     && apt autoremove -y \
     && apt clean all \
     && rm -rf /var/lib/apt/lists/*

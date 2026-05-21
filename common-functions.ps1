@@ -389,6 +389,44 @@ function Get-WorkloadBandTag {
     return "$majorVersion.$minorVersion.$bandAlias"
 }
 
+function Get-DotnetContainerImageTags {
+    param (
+        [string]$DotnetVersion,
+        [string]$DockerPlatform
+    )
+
+    if ([string]::IsNullOrWhiteSpace($DotnetVersion)) {
+        throw "DotnetVersion is required to resolve .NET container image tags."
+    }
+
+    $dotnetChannel = $DotnetVersion
+    if ($DotnetVersion -match '^(\d+\.\d+)') {
+        $dotnetChannel = $Matches[1]
+    }
+
+    # .NET 11 is preview-only for this repository right now. MCR publishes the
+    # current preview under the rolling 11.0-preview tags, not 11.0 stable tags.
+    $dotnetImageVersion = if ($dotnetChannel -eq "11.0") { "$dotnetChannel-preview" } else { $dotnetChannel }
+
+    if ($DockerPlatform.StartsWith("linux/")) {
+        $osTag = "resolute"
+    } elseif ($DockerPlatform.StartsWith("windows/")) {
+        $osTag = "windowsservercore-ltsc2025"
+    } else {
+        throw "Unsupported Docker platform for .NET image tag resolution: $DockerPlatform"
+    }
+
+    $imageTag = "$dotnetImageVersion-$osTag"
+
+    return [PSCustomObject]@{
+        DotnetChannel = $dotnetChannel
+        ImageVersion = $dotnetImageVersion
+        OS = $osTag
+        Sdk = $imageTag
+        Runtime = $imageTag
+    }
+}
+
 # Helper function to convert base version from NuGet to CLI format
 function Convert-BaseVersionToCliFormat {
     param (
@@ -792,9 +830,11 @@ function Get-WorkloadSetInfo {
         $majorVersion = $Matches[1]
     }
     
+    $effectiveIncludePrerelease = $IncludePrerelease -or ($WorkloadSetVersion -match '-')
+
     # Find the latest workload set if not specified
     if (-not $WorkloadSetVersion) {
-        $latestWorkloadSet = Find-LatestWorkloadSet -DotnetVersion $majorVersion -IncludePrerelease $IncludePrerelease -AutoDetectPrerelease $true
+        $latestWorkloadSet = Find-LatestWorkloadSet -DotnetVersion $majorVersion -IncludePrerelease $effectiveIncludePrerelease -AutoDetectPrerelease $true
         if ($latestWorkloadSet) {
             $WorkloadSetVersion = $latestWorkloadSet.version
             $WorkloadSetId = $latestWorkloadSet.id  # Use the actual package ID from search results
@@ -805,7 +845,7 @@ function Get-WorkloadSetInfo {
         }
     } else {
         # Find the workload set with the specified version
-        $specificWorkloadSet = Find-LatestWorkloadSet -DotnetVersion $majorVersion -WorkloadSetVersion $WorkloadSetVersion -IncludePrerelease $IncludePrerelease -AutoDetectPrerelease $true
+        $specificWorkloadSet = Find-LatestWorkloadSet -DotnetVersion $majorVersion -WorkloadSetVersion $WorkloadSetVersion -IncludePrerelease $effectiveIncludePrerelease -AutoDetectPrerelease $true
         if ($specificWorkloadSet) {
             $WorkloadSetId = $specificWorkloadSet.id  # Use the actual package ID from search results
             Write-Host "Using specified workload set: $WorkloadSetId v$WorkloadSetVersion"
@@ -1103,14 +1143,13 @@ function Get-CirrusLabsXcodeMapping {
         [string]$MacOSVersion  # e.g., "tahoe", "sequoia"
     )
 
-    # Mapping of macOS versions to their internal version numbers and Xcode base versions
-    # Cirrus Labs naming: macos-{version}-xcode:{internal_version}.{xcode_minor}
-    # For Tahoe: internal version is 26, Xcode base is 16
-    # Tag "26" = Xcode 16.0, "26.1" = Xcode 16.1, "26.2" = Xcode 16.2
+    # Mapping of macOS versions to their Cirrus Labs tag line and Xcode base versions.
+    # Cirrus Labs naming: macos-{version}-xcode:{xcode_major}.{xcode_minor}
+    # For Tahoe, tags now track the Xcode 26 line directly.
     $macOSMappings = @{
         "tahoe" = @{
             InternalVersion = 26
-            XcodeBaseVersion = 16
+            XcodeBaseVersion = 26
             MacOSVersion = "16"
         }
         "sequoia" = @{
@@ -1151,7 +1190,6 @@ function Convert-CirrusTagToXcodeVersion {
     $patch = if ($tagParts.Count -gt 2) { $tagParts[2] } else { $null }
 
     # Calculate Xcode version based on the mapping
-    # For Tahoe: tag 26.x -> Xcode 16.x
     $xcodeVersionDiff = $internalMajor - $Mapping.InternalVersion
     $xcodeMajor = $Mapping.XcodeBaseVersion + $xcodeVersionDiff
 
@@ -1178,7 +1216,6 @@ function Convert-XcodeVersionToCirrusTag {
     $patch = if ($versionParts.Count -gt 2) { $versionParts[2] } else { $null }
 
     # Calculate Cirrus tag from Xcode version
-    # For Tahoe: Xcode 16.x -> tag 26.x
     $tagMajor = $Mapping.InternalVersion + ($xcodeMajor - $Mapping.XcodeBaseVersion)
 
     if ($patch -and $patch -ne "0") {
@@ -1259,7 +1296,7 @@ function Get-CirrusLabsKnownTags {
 
     # Known tag patterns for Cirrus Labs macOS images
     $knownPatterns = switch ($MacOSVersion.ToLower()) {
-        "tahoe" { @("26", "26.1", "26.1.1", "26.2", "26.2.1", "26.3") }
+        "tahoe" { @("26", "26.1", "26.1.1", "26.2", "26.2.1", "26.3", "26.4", "26.4.1") }
         "sequoia" { @("16", "16.1", "16.2", "16.3", "16.4") }
         default { @() }
     }

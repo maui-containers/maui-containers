@@ -1,4 +1,4 @@
-Param([String]$DotnetVersion="9.0",
+Param([String]$DotnetVersion="10.0",
     [String]$WorkloadSetVersion="",
     [String]$DockerRepository="ghcr.io/maui-containers",
     [String]$Version="latest",

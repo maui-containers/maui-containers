@@ -50,7 +50,7 @@ You can manually run the validation with different options:
 1. Go to **Actions** → **PR Validation - Build Docker Images**
 2. Click **Run workflow**
 3. Configure options:
-   - **dotnet_versions**: JSON array like `["9.0", "10.0"]`
+   - **dotnet_versions**: JSON array like `["10.0", "11.0"]`
    - **test_subset**: Choose validation depth:
      - `single-platform` - Quick test (5-10 minutes)
      - `base-only` - Medium test (15-30 minutes) 

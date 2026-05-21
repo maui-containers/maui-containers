@@ -8,7 +8,9 @@ Param(
     [ValidateNotNullOrEmpty()]
     [string]$MacOSVersion = "",
 
-    [ValidateSet("9.0", "10.0")]
+    # .NET 9.0 is retired from active MAUI support; re-add it here and to
+    # DotnetChannels in platform-matrix.json if it needs to be revived.
+    [ValidateSet("10.0", "11.0")]
     [string]$DotnetChannel = "10.0",
 
     [string]$WorkloadSetVersion = "",

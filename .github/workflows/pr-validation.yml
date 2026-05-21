@@ -11,10 +11,10 @@ on:
   workflow_dispatch:
     inputs:
       dotnet_versions:
-        description: 'JSON array of .NET versions to test (e.g., ["9.0", "10.0"])'
+        description: 'JSON array of .NET versions to test (e.g., ["10.0", "11.0"])'
         required: false
         type: string
-        default: '["9.0", "10.0"]'
+        default: '["10.0", "11.0"]'
       test_subset:
         description: 'Test subset: all, base-only, or single-platform'
         required: false
@@ -55,7 +55,8 @@ jobs:
         $dotnetVersions = if ($dotnetVersionsInput -ne "") {
           $dotnetVersionsInput | ConvertFrom-Json
         } else {
-          @("9.0", "10.0")
+          # .NET 9.0 is retired from active validation. Add it here if it needs to be revived.
+          @("10.0", "11.0")
         }
         
         Write-Host "## Workload Discovery Test Results" >> $env:GITHUB_STEP_SUMMARY
@@ -123,7 +124,8 @@ jobs:
         $dotnetVersions = if ($dotnetVersionsInput -ne "") {
           $dotnetVersionsInput | ConvertFrom-Json
         } else {
-          @("9.0", "10.0")
+          # .NET 9.0 is retired from active validation. Add it here if it needs to be revived.
+          @("10.0", "11.0")
         }
         
         # Determine subset based on input
@@ -164,13 +166,13 @@ jobs:
         elseif ($testSubset -eq "base-only") {
           foreach ($dotnetVersion in $dotnetVersions) {
             $matrix += New-MatrixEntry -DotnetVersion $dotnetVersion -Platform "linux" -RunnerOs "ubuntu-latest"
-            $matrix += New-MatrixEntry -DotnetVersion $dotnetVersion -Platform "windows" -RunnerOs "windows-latest"
+            $matrix += New-MatrixEntry -DotnetVersion $dotnetVersion -Platform "windows" -RunnerOs "windows-2025"
           }
         }
         else {
           foreach ($dotnetVersion in $dotnetVersions) {
             $matrix += New-MatrixEntry -DotnetVersion $dotnetVersion -Platform "linux" -RunnerOs "ubuntu-latest" -BuildTest 'true' -AndroidApiLevel '35'
-            $matrix += New-MatrixEntry -DotnetVersion $dotnetVersion -Platform "windows" -RunnerOs "windows-latest"
+            $matrix += New-MatrixEntry -DotnetVersion $dotnetVersion -Platform "windows" -RunnerOs "windows-2025"
           }
         }
         
@@ -586,7 +588,8 @@ jobs:
        needs.detect-changes.outputs.tart-macos == 'true')
     strategy:
       matrix:
-        dotnet_version: ["9.0", "10.0"]
+        # .NET 9.0 is retired from active validation. Add it here if it needs to be revived.
+        dotnet_version: ["10.0", "11.0"]
       fail-fast: false
 
     steps:

@@ -33,7 +33,7 @@ variable "dotnet_channel" {
 
 variable "workload_set_version" {
   type        = string
-  description = "Specific workload set version (e.g., 10.0.100-rc.1.24557.12). Leave empty for auto-detect."
+  description = "Specific workload set version (e.g., 11.0.100-preview.4.26261.2). Leave empty for auto-detect."
   default     = ""
 }
 

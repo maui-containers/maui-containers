@@ -50,32 +50,32 @@ tart/
 
 ## Quick Start
 
-### 1. Build MAUI Development Image (Sequoia)
+### 1. Build MAUI Development Image (Tahoe)
 ```bash
-pwsh ./scripts/build.ps1 -ImageType maui -MacOSVersion sequoia -DotnetChannel 10.0
+pwsh ./scripts/build.ps1 -ImageType maui -MacOSVersion tahoe -DotnetChannel 10.0
 ```
 > The script resolves `-BaseXcodeVersion` from `config/platform-matrix.json` when you omit it.
 
-### 2. Build MAUI Preview Image (Tahoe + Xcode 26)
+### 2. Build MAUI Preview Image (Tahoe + Xcode 26.4)
 ```bash
 # Uses pinned SHA256 digest from platform-matrix.json
-pwsh ./scripts/build.ps1 -ImageType maui -MacOSVersion tahoe -DotnetChannel 10.0
+pwsh ./scripts/build.ps1 -ImageType maui -MacOSVersion tahoe -DotnetChannel 11.0
 ```
 
 ### 3. Run a VM
 ```bash
-tart run maui-dev-sequoia
+tart run maui-macos
 ```
 
 ### 4. Test Built Image
 ```bash
-pwsh ./scripts/test.ps1 -ImageName maui-dev-sequoia -TestType maui
+pwsh ./scripts/test.ps1 -ImageName maui-macos -TestType maui
 ```
 
 ### 5. (Optional) Run custom startup logic
 Mount a config folder containing `init.sh` to run your own bootstrap after the VM starts:
 ```bash
-tart run maui-dev-sequoia --dir config:/path/to/config
+tart run maui-macos --dir config:/path/to/config
 ```
 
 ## Image Types
@@ -97,15 +97,15 @@ tart run maui-dev-sequoia --dir config:/path/to/config
 ### Development Workflow
 ```bash
 # Build and start development environment
-pwsh ./scripts/build.ps1 -ImageType maui -MacOSVersion sequoia -DotnetChannel 10.0
-tart run maui-dev-sequoia --dir project:/path/to/your/project
+pwsh ./scripts/build.ps1 -ImageType maui -MacOSVersion tahoe -DotnetChannel 10.0
+tart run maui-macos --dir project:/path/to/your/project
 
 # Inside VM - access project at /Volumes/My Shared Files/project
 cd "/Volumes/My Shared Files/project"
 dotnet build
 ```
 
-To target the Tahoe preview stack, use `-MacOSVersion tahoe` when calling `build.ps1`. The base Xcode version is pinned via SHA256 digest in `platform-matrix.json`.
+To target the .NET 11 preview stack, use `-DotnetChannel 11.0` when calling `build.ps1`. The base Xcode version is pinned via SHA256 digest in `platform-matrix.json`.
 
 ### CI/CD Integration
 ```yaml
