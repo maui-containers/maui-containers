@@ -57,14 +57,16 @@ Images are published under the `maui-containers` organization:
 
 All images use a consistent tag format with platform/OS identifiers and version information:
 
-**Pattern:** `{platform-identifier}-dotnet{X.Y}-workloads{exact-or-band}[-v{sha}]`
+**Pattern:** `{platform-identifier}-dotnet{X.Y}[-preview|-previewN|-rc|-rcN][-workloads{exact-or-band}][-v{sha}]`
 
 **Tag Variants:**
 
-1. **`{platform}-dotnet{X.Y}`** - Latest workload set for this .NET version
-2. **`{platform}-dotnet{X.Y}-workloads{X.Y.Z}`** - Specific workload version
-3. **`{platform}-dotnet{X.Y}-workloads{X.Y.Nxx}`** - Rolling workload-band tag for minor updates in a hundreds range
-4. **`{platform}-dotnet{X.Y}-workloads{X.Y.Z}-v{sha}`** - SHA-pinned build (optional)
+1. **`{platform}-dotnet{X.Y}`** - Latest stable workload set for this .NET version
+2. **`{platform}-dotnet{X.Y}-preview`** - Latest prerelease workload set for this .NET version
+3. **`{platform}-dotnet{X.Y}-previewN`** - Latest workload set for a specific preview wave
+4. **`{platform}-dotnet{tag}-workloads{X.Y.Z}`** - Specific workload version
+5. **`{platform}-dotnet{tag}-workloads{X.Y.Nxx}`** - Rolling workload-band tag for minor updates in a hundreds range
+6. **`{platform}-dotnet{specific-tag}-workloads{X.Y.Z}-v{sha}`** - SHA-pinned build (optional)
 
 ### Examples by Platform
 
@@ -77,10 +79,12 @@ maui-containers/maui-linux:dotnet10.0-workloads10.0.3xx
 maui-containers/maui-linux:dotnet10.0-workloads10.0.300.3-vsha256abc
 
 # .NET 11.0 Preview
-maui-containers/maui-linux:dotnet11.0
-maui-containers/maui-linux:dotnet11.0-workloads11.0.100-preview.4.26261.2
-maui-containers/maui-linux:dotnet11.0-workloads11.0.1xx
-maui-containers/maui-linux:dotnet11.0-workloads11.0.100-preview.4.26261.2-vsha256abc
+maui-containers/maui-linux:dotnet11.0-preview
+maui-containers/maui-linux:dotnet11.0-preview4
+maui-containers/maui-linux:dotnet11.0-preview-workloads11.0.100-preview.4.26261.2
+maui-containers/maui-linux:dotnet11.0-preview-workloads11.0.1xx
+maui-containers/maui-linux:dotnet11.0-preview4-workloads11.0.100-preview.4.26261.2
+maui-containers/maui-linux:dotnet11.0-preview4-workloads11.0.100-preview.4.26261.2-vsha256abc
 ```
 
 #### Windows Base Images
@@ -91,9 +95,12 @@ maui-containers/maui-windows:dotnet10.0-workloads10.0.300.3
 maui-containers/maui-windows:dotnet10.0-workloads10.0.300.3-vsha256abc
 
 # .NET 11.0 Preview
-maui-containers/maui-windows:dotnet11.0
-maui-containers/maui-windows:dotnet11.0-workloads11.0.100-preview.4.26261.2
-maui-containers/maui-windows:dotnet11.0-workloads11.0.100-preview.4.26261.2-vsha256abc
+maui-containers/maui-windows:dotnet11.0-preview
+maui-containers/maui-windows:dotnet11.0-preview4
+maui-containers/maui-windows:dotnet11.0-preview-workloads11.0.100-preview.4.26261.2
+maui-containers/maui-windows:dotnet11.0-preview-workloads11.0.1xx
+maui-containers/maui-windows:dotnet11.0-preview4-workloads11.0.100-preview.4.26261.2
+maui-containers/maui-windows:dotnet11.0-preview4-workloads11.0.100-preview.4.26261.2-vsha256abc
 ```
 
 #### macOS VM Images (includes OS version)
@@ -105,10 +112,12 @@ maui-containers/maui-macos:tahoe-dotnet10.0-workloads10.0.3xx
 maui-containers/maui-macos:tahoe-dotnet10.0-workloads10.0.300.3-vsha256abc
 
 # .NET 11.0 Preview
-maui-containers/maui-macos:tahoe-dotnet11.0
-maui-containers/maui-macos:tahoe-dotnet11.0-workloads11.0.100-preview.4.26261.2
-maui-containers/maui-macos:tahoe-dotnet11.0-workloads11.0.1xx
-maui-containers/maui-macos:tahoe-dotnet11.0-workloads11.0.100-preview.4.26261.2-vsha256abc
+maui-containers/maui-macos:tahoe-dotnet11.0-preview
+maui-containers/maui-macos:tahoe-dotnet11.0-preview4
+maui-containers/maui-macos:tahoe-dotnet11.0-preview-workloads11.0.100-preview.4.26261.2
+maui-containers/maui-macos:tahoe-dotnet11.0-preview-workloads11.0.1xx
+maui-containers/maui-macos:tahoe-dotnet11.0-preview4-workloads11.0.100-preview.4.26261.2
+maui-containers/maui-macos:tahoe-dotnet11.0-preview4-workloads11.0.100-preview.4.26261.2-vsha256abc
 ```
 
 #### Emulator/Test Images (includes Android API level)
@@ -118,8 +127,11 @@ maui-containers/maui-emulator-linux:android35-dotnet10.0
 maui-containers/maui-emulator-linux:android35-dotnet10.0-workloads10.0.300.3
 
 # Android 36 with .NET 11.0 Preview
-maui-containers/maui-emulator-linux:android36-dotnet11.0
-maui-containers/maui-emulator-linux:android36-dotnet11.0-workloads11.0.100-preview.4.26261.2
+maui-containers/maui-emulator-linux:android36-dotnet11.0-preview
+maui-containers/maui-emulator-linux:android36-dotnet11.0-preview4
+maui-containers/maui-emulator-linux:android36-dotnet11.0-preview-workloads11.0.100-preview.4.26261.2
+maui-containers/maui-emulator-linux:android36-dotnet11.0-preview-workloads11.0.1xx
+maui-containers/maui-emulator-linux:android36-dotnet11.0-preview4-workloads11.0.100-preview.4.26261.2
 ```
 
 ### Platform Identifiers
@@ -136,6 +148,7 @@ maui-containers/maui-emulator-linux:android36-dotnet11.0-workloads11.0.100-previ
 - **Always includes .NET version** - No ambiguity about which .NET version is installed
 - **Workload versions explicit** - Pin to specific workload sets for reproducible builds
 - **Rolling band tags available** - Follow updates like `10.0.3xx` or `11.0.1xx` without jumping across bands
+- **Prerelease tags are explicit** - Preview and RC channels always include `-preview`, `-previewN`, `-rc`, or `-rcN`
 - **SHA pinning optional** - For maximum reproducibility when needed
 - **Platform-aware** - macOS includes OS version for Xcode; emulator includes API level
 - **No redundant tags** - Removed ambiguous `:latest` and platform-only tags
@@ -155,7 +168,7 @@ Development images provide a complete .NET MAUI development environment. Use the
 docker run -it maui-containers/maui-linux:dotnet10.0 bash
 
 # Run a Windows development container (.NET 11.0 Preview)
-docker run -it maui-containers/maui-windows:dotnet11.0 powershell
+docker run -it maui-containers/maui-windows:dotnet11.0-preview powershell
 ```
 
 **With Custom Startup Logic:**
@@ -328,7 +341,7 @@ Each Android API Level (23 through latest) has its own image variant.  You can s
 <summary>Show Active Variant Examples...</summary>
 
 - ![Docker Image Version (tag)](https://img.shields.io/docker/v/mauicontainers/maui-emulator-linux/android35-dotnet10.0?link=https%3A%2F%2Fhub.docker.com%2Fr%2Fmauicontainers%2Fmaui-emulator-linux%2Ftags)
-- ![Docker Image Version (tag)](https://img.shields.io/docker/v/mauicontainers/maui-emulator-linux/android36-dotnet11.0?link=https%3A%2F%2Fhub.docker.com%2Fr%2Fmauicontainers%2Fmaui-emulator-linux%2Ftags)
+- ![Docker Image Version (tag)](https://img.shields.io/docker/v/mauicontainers/maui-emulator-linux/android36-dotnet11.0-preview?link=https%3A%2F%2Fhub.docker.com%2Fr%2Fmauicontainers%2Fmaui-emulator-linux%2Ftags)
  
 </details>
 
@@ -356,9 +369,11 @@ Tart VM images provide complete macOS virtual machines for .NET MAUI development
 - `tahoe-dotnet10.0` - .NET 10.0 on macOS Tahoe
 - `tahoe-dotnet10.0-workloads10.0.300.3` - Specific workload version
 - `tahoe-dotnet10.0-workloads10.0.3xx` - Rolling tag for the 10.0.300-399 workload band
-- `tahoe-dotnet11.0` - .NET 11.0 Preview on macOS Tahoe
-- `tahoe-dotnet11.0-workloads11.0.100-preview.4.26261.2` - Specific workload version
-- `tahoe-dotnet11.0-workloads11.0.1xx` - Rolling tag for the 11.0.100 preview workload band
+- `tahoe-dotnet11.0-preview` - Latest .NET 11.0 preview on macOS Tahoe
+- `tahoe-dotnet11.0-preview4` - Latest .NET 11.0 Preview 4 on macOS Tahoe
+- `tahoe-dotnet11.0-preview-workloads11.0.100-preview.4.26261.2` - Specific workload version on the preview channel
+- `tahoe-dotnet11.0-preview-workloads11.0.1xx` - Rolling tag for the 11.0.100 preview workload band
+- `tahoe-dotnet11.0-preview4-workloads11.0.100-preview.4.26261.2` - Specific workload version pinned to Preview 4
 
 Images are automatically built and published to GitHub Container Registry (ghcr.io) when workload updates are detected or when manually triggered.
 
@@ -375,7 +390,7 @@ tart run maui-dev
 tart run ghcr.io/maui-containers/maui-macos:tahoe-dotnet10.0
 
 # Pin to a specific workload version
-tart clone ghcr.io/maui-containers/maui-macos:tahoe-dotnet11.0-workloads11.0.100-preview.4.26261.2 maui-dev
+tart clone ghcr.io/maui-containers/maui-macos:tahoe-dotnet11.0-preview4-workloads11.0.100-preview.4.26261.2 maui-dev
 ```
 
 ### Custom Startup

@@ -19,6 +19,14 @@ Param(
     [String]$AvdName = ""
 )
 
+$commonFunctionsPath = Join-Path -Path $PSScriptRoot -ChildPath "..\..\common-functions.ps1" -Resolve -ErrorAction SilentlyContinue
+if ($commonFunctionsPath -and (Test-Path -Path $commonFunctionsPath -PathType Leaf)) {
+    . $commonFunctionsPath
+} else {
+    Write-Error "Could not find common functions file at expected path: ..\..\common-functions.ps1"
+    exit 1
+}
+
 $runArgs = @(
     "run", "-d",
     "--device", "/dev/kvm",
@@ -59,7 +67,8 @@ if ($AvdName -ne "") {
     $runArgs += "-e", "AVD_NAME=$AvdName"
 }
 
-$imageTag = "${DockerRepository}:android${AndroidSdkApiLevel}-dotnet${DotnetVersion}"
+$dotnetImageTags = Get-DotnetContainerImageTags -DotnetVersion $DotnetVersion -DockerPlatform "linux/amd64"
+$imageTag = "${DockerRepository}:android${AndroidSdkApiLevel}-dotnet$($dotnetImageTags.ImageVersion)"
 $runArgs += $imageTag
 
 Write-Host "Starting emulator container: docker $($runArgs -join ' ')"

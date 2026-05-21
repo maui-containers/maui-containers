@@ -215,7 +215,7 @@ Tart VM images are automatically published to GitHub Container Registry (ghcr.io
 
 **Published Image Locations:**
 - `ghcr.io/maui-containers/maui-macos:tahoe-dotnet10.0` - .NET 10.0 MAUI development VM
-- `ghcr.io/maui-containers/maui-macos:tahoe-dotnet11.0` - .NET 11.0 Preview MAUI development VM
+- `ghcr.io/maui-containers/maui-macos:tahoe-dotnet11.0-preview` - .NET 11.0 Preview MAUI development VM
 
 **Authentication:** GitHub Actions uses `GITHUB_TOKEN` automatically. For local use, you need a GitHub Personal Access Token with `packages:write` permission.
 
