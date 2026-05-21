@@ -167,8 +167,8 @@ jobs:
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
-          console.log('Triggering build-emulators workflow - workload update(s) detected');
-          console.log('Each .NET version (10.0 and 11.0) will auto-detect its appropriate workload version');
+          console.log('Triggering build-emulators workflow to refresh emulator images');
+          console.log('Emulator images build once per Android API level and are independent of .NET workload versions');
 
           try {
             await github.rest.actions.createWorkflowDispatch({

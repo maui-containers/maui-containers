@@ -32,9 +32,9 @@ ARG DOTNET_RUNTIME_IMAGE_TAG=10.0-resolute
 
 ARG JDK_MAJOR_VERSION=21
 ARG ANDROID_SDK_API_LEVEL=35
-ARG ANDROID_SDK_BUILD_TOOLS_VERSION=33.0.3
-ARG ANDROID_SDK_CMDLINE_TOOLS_VERSION=13.0
-ARG ANDROID_SDK_AVD_DEVICE_TYPE="Nexus 5X"
+ARG ANDROID_SDK_BUILD_TOOLS_VERSION=36.0.0
+ARG ANDROID_SDK_CMDLINE_TOOLS_VERSION=19.0
+ARG ANDROID_SDK_AVD_DEVICE_TYPE="Nexus 5"
 ARG ANDROID_SDK_AVD_SYSTEM_IMAGE_TYPE=google_apis
 ARG APPIUM_VERSION=2.0.12
 ARG APPIUM_UIAUTOMATOR2_DRIVER_VERSION=3.0.8
@@ -123,7 +123,7 @@ RUN apt-get update && apt-get install -y \
     cpu-checker \
     ffmpeg \
     tree \
-    qemu-kvm qemu-utils bridge-utils libvirt-daemon-system libvirt-daemon qemu-system virt-manager virtinst libvirt-clients \
+    qemu-system-x86 qemu-utils bridge-utils libvirt-daemon-system libvirt-daemon qemu-system virt-manager virtinst libvirt-clients \
     socat supervisor \
     && apt autoremove -y \
     && apt clean all \

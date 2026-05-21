@@ -7,8 +7,15 @@ Param(
     [String]$DockerPlatform="linux/amd64",
     [String]$AndroidSdkApiLevel=35,
     [String]$Version="latest",
-    [String]$WorkloadSetVersion="",
     [String]$DotnetVersion="10.0",
+    [String]$DotnetSdkImageTag="",
+    [String]$DotnetRuntimeImageTag="",
+    [String]$AndroidSdkBuildToolsVersion="36.0.0",
+    [String]$AndroidSdkCmdLineToolsVersion="19.0",
+    [String]$AndroidAvdDeviceType="Nexus 5",
+    [String]$AndroidAvdSystemImageType="google_apis",
+    [String]$JdkMajorVersion="21",
+    [String]$WorkloadSetVersion="",
     [String]$AppiumVersion="",
     [String]$AppiumUIAutomator2DriverVersion="",
     [String]$BuildSha="",
@@ -24,8 +31,7 @@ if ($DockerPlatform.StartsWith('linux/')) {
     exit 1
 }
 
-# Import common functions for Appium version detection
-# NOTE: We only use this for Get-LatestAppiumVersions, not for workload detection
+# Import common functions for Appium version detection and .NET base image tags.
 $commonFunctionsPath = Join-Path -Path $PSScriptRoot -ChildPath "..\..\common-functions.ps1" -Resolve -ErrorAction SilentlyContinue
 
 if ($commonFunctionsPath -and (Test-Path -Path $commonFunctionsPath -PathType Leaf)) {
@@ -66,122 +72,77 @@ if ([string]::IsNullOrEmpty($AppiumVersion) -or [string]::IsNullOrEmpty($AppiumU
     Write-Host "  UIAutomator2 Driver: $AppiumUIAutomator2DriverVersion"
 }
 
-# Default Android SDK component versions (will be overridden by workload detection)
-# These values are used as fallbacks if workload detection fails
-$androidBuildToolsVersion = "35.0.0"
-$androidCmdLineToolsVersion = "13.0"
-$androidJdkMajorVersion = "21"
-$androidAvdSystemImageType = "google_apis"
-$androidAvdDeviceType = "Nexus 5X"
-
-# Get comprehensive workload information with a single call
-Write-Host "Getting workload information for Android SDK dependencies..."
-$workloadInfo = Get-WorkloadInfo -DotnetVersion $DotnetVersion -WorkloadSetVersion $WorkloadSetVersion -IncludeAndroid -DockerPlatform $DockerPlatform
-
-if (-not $workloadInfo) {
-    Write-Error "Failed to get workload information."
-    exit 1
+# Emulator images are not MAUI build images, so keep Android SDK inputs explicit
+# instead of coupling emulator tags and builds to .NET workload set versions.
+if (-not [string]::IsNullOrWhiteSpace($WorkloadSetVersion)) {
+    Write-Warning "WorkloadSetVersion is ignored for emulator images. Android SDK components are configured directly."
 }
 
-# Extract Android-specific information
-$androidWorkload = $workloadInfo.Workloads["Microsoft.NET.Sdk.Android"]
-if (-not $androidWorkload) {
-    Write-Error "Could not find Android workload in the workload set."
-    exit 1
+$requiredSettings = @{
+    AndroidSdkBuildToolsVersion   = $AndroidSdkBuildToolsVersion
+    AndroidSdkCmdLineToolsVersion = $AndroidSdkCmdLineToolsVersion
+    AndroidAvdDeviceType          = $AndroidAvdDeviceType
+    AndroidAvdSystemImageType     = $AndroidAvdSystemImageType
+    JdkMajorVersion               = $JdkMajorVersion
 }
 
-# Extract Android details if available
-$androidDetails = $androidWorkload.Details
-if (-not $androidDetails) {
-    Write-Error "Could not extract Android details from workload."
-    exit 1
-}
-
-Write-Host "Android workload details retrieved successfully:"
-Write-Host "  API Level: $($androidDetails.ApiLevel)"
-Write-Host "  Build Tools Version: $($androidDetails.BuildToolsVersion)"
-Write-Host "  Command Line Tools Version: $($androidDetails.CmdLineToolsVersion)"
-Write-Host "  JDK Major Version: $($androidDetails.JdkMajorVersion)"
-Write-Host "  System Image Type: $($androidDetails.SystemImageType)"
-Write-Host "  AVD Device Type: $($androidDetails.AvdDeviceType)"
-
-# Use workload-detected values for Android SDK components (override hardcoded values)
-$androidBuildToolsVersion = $androidDetails.BuildToolsVersion
-$androidCmdLineToolsVersion = $androidDetails.CmdLineToolsVersion
-$androidJdkMajorVersion = $androidDetails.JdkMajorVersion
-$androidAvdSystemImageType = $androidDetails.SystemImageType
-$androidAvdDeviceType = $androidDetails.AvdDeviceType
-
-if ([string]::IsNullOrWhiteSpace($androidAvdSystemImageType)) {
-    $androidAvdSystemImageType = "google_apis"
-    Write-Warning "Android workload did not specify an AVD system image type; using fallback: $androidAvdSystemImageType"
-}
-
-if ([string]::IsNullOrWhiteSpace($androidAvdDeviceType)) {
-    $androidAvdDeviceType = "Nexus 5X"
-    Write-Warning "Android workload did not specify an AVD device type; using fallback: $androidAvdDeviceType"
-}
-
-# Extract the dotnet command version for Docker tags
-$dotnetCommandWorkloadSetVersion = $workloadInfo.DotnetCommandWorkloadSetVersion
-$dotnetImageTags = Get-DotnetContainerImageTags -DotnetVersion $DotnetVersion -DockerPlatform $DockerPlatform
-Write-Host "Using .NET SDK image tag: $($dotnetImageTags.Sdk)"
-Write-Host "Using .NET runtime image tag: $($dotnetImageTags.Runtime)"
-
-# Determine which Android SDK API level to use
-# Use the parameter provided, which could be from the matrix or a specific override
-Write-Host "Using Android SDK API Level: $AndroidSdkApiLevel (from parameter/matrix)"
-Write-Host "Workload default API Level: $($androidDetails.ApiLevel) (will be available in the built image)"
-
-# Build tags following the unified naming scheme:
-# - android{XX}-dotnet{X.Y} for stable, android{XX}-dotnet{X.Y}-{prerelease} for prerelease channels
-# - android{XX}-dotnet{X.Y}-{prereleaseN} for a specific prerelease wave
-# - android{XX}-dotnet{tag}-workloads{X.Y.Z} - Specific workload version
-# - android{XX}-dotnet{specific-tag}-workloads{X.Y.Z}-v{sha} - SHA-pinned version (optional)
-# If Version is not "latest", also add a custom version tag
-$tags = @()
-$workloadBandTagVersion = Get-WorkloadBandTag -WorkloadVersion $dotnetCommandWorkloadSetVersion
-$dotnetTagPrefixInfo = Get-DotnetTagPrefixInfo -DotnetVersion $DotnetVersion -WorkloadVersion $dotnetCommandWorkloadSetVersion -Prefix "android${AndroidSdkApiLevel}-"
-
-# 1. android{XX}-dotnet{tag} tag (this is the "latest" for this .NET version/channel + API level)
-$dotnetTag = "${DockerRepository}:$($dotnetTagPrefixInfo.Channel)"
-$tags += $dotnetTag
-
-# 2. Optional: android{XX}-dotnet{specific-prerelease} tag (e.g. android36-dotnet11.0-preview4)
-if ($dotnetTagPrefixInfo.Specific -ne $dotnetTagPrefixInfo.Channel) {
-    $specificDotnetTag = "${DockerRepository}:$($dotnetTagPrefixInfo.Specific)"
-    $tags += $specificDotnetTag
-}
-
-# 3. android{XX}-dotnet{tag}-workloads{X.Y.Z} tag
-$workloadTag = "${DockerRepository}:$($dotnetTagPrefixInfo.Channel)-workloads${dotnetCommandWorkloadSetVersion}"
-$tags += $workloadTag
-
-# 4. Optional: prerelease rolling workload band tag
-if ($dotnetTagPrefixInfo.IsPrerelease -and $workloadBandTagVersion) {
-    $workloadBandTag = "${DockerRepository}:$($dotnetTagPrefixInfo.Channel)-workloads${workloadBandTagVersion}"
-    if ($tags -notcontains $workloadBandTag) {
-        $tags += $workloadBandTag
+foreach ($setting in $requiredSettings.GetEnumerator()) {
+    if ([string]::IsNullOrWhiteSpace($setting.Value)) {
+        Write-Error "$($setting.Key) is required."
+        exit 1
     }
 }
 
-# 5. Optional: android{XX}-dotnet{specific-prerelease}-workloads{X.Y.Z} tag
-if ($dotnetTagPrefixInfo.Specific -ne $dotnetTagPrefixInfo.Channel) {
-    $specificWorkloadTag = "${DockerRepository}:$($dotnetTagPrefixInfo.Specific)-workloads${dotnetCommandWorkloadSetVersion}"
-    $tags += $specificWorkloadTag
+$androidBuildToolsVersion = $AndroidSdkBuildToolsVersion
+$androidCmdLineToolsVersion = $AndroidSdkCmdLineToolsVersion
+$androidJdkMajorVersion = $JdkMajorVersion
+$androidAvdSystemImageType = $AndroidAvdSystemImageType
+$androidAvdDeviceType = $AndroidAvdDeviceType
+
+$dotnetImageTags = Get-DotnetContainerImageTags -DotnetVersion $DotnetVersion -DockerPlatform $DockerPlatform
+
+if (-not [string]::IsNullOrWhiteSpace($DotnetSdkImageTag)) {
+    $dotnetImageTags.Sdk = $DotnetSdkImageTag
 }
 
-# 6. Optional: android{XX}-dotnet{specific-tag}-workloads{X.Y.Z}-v{sha} tag
+if (-not [string]::IsNullOrWhiteSpace($DotnetRuntimeImageTag)) {
+    $dotnetImageTags.Runtime = $DotnetRuntimeImageTag
+}
+
+Write-Host "Using .NET SDK image tag: $($dotnetImageTags.Sdk)"
+Write-Host "Using .NET runtime image tag: $($dotnetImageTags.Runtime)"
+
+Write-Host "Using Android SDK settings:"
+Write-Host "  API Level: $AndroidSdkApiLevel"
+Write-Host "  Build Tools Version: $androidBuildToolsVersion"
+Write-Host "  Command Line Tools Version: $androidCmdLineToolsVersion"
+Write-Host "  JDK Major Version: $androidJdkMajorVersion"
+Write-Host "  System Image Type: $androidAvdSystemImageType"
+Write-Host "  AVD Device Type: $androidAvdDeviceType"
+
+# Build tags. The API-level tag is primary; dotnet-suffixed tags are kept as
+# compatibility aliases for existing consumers.
+$tags = @()
+$primaryTag = "${DockerRepository}:android${AndroidSdkApiLevel}"
+$legacyDotnetTag = "${DockerRepository}:android${AndroidSdkApiLevel}-dotnet${DotnetVersion}"
+$tags += $primaryTag
+$tags += $legacyDotnetTag
+
 if ($BuildSha) {
-    $shaTag = "${DockerRepository}:$($dotnetTagPrefixInfo.Specific)-workloads${dotnetCommandWorkloadSetVersion}-v${BuildSha}"
+    $shaTag = "${DockerRepository}:android${AndroidSdkApiLevel}-v${BuildSha}"
+    $legacyShaTag = "${DockerRepository}:android${AndroidSdkApiLevel}-dotnet${DotnetVersion}-v${BuildSha}"
     $tags += $shaTag
+    $tags += $legacyShaTag
 }
 
-# 7. Optional: Custom version tag (for PR builds, etc.)
 if ($Version -ne "latest") {
-    $customTag = "${DockerRepository}:$($dotnetTagPrefixInfo.Specific)-${Version}"
+    $customTag = "${DockerRepository}:android${AndroidSdkApiLevel}-${Version}"
+    $legacyCustomTag = "${DockerRepository}:android${AndroidSdkApiLevel}-dotnet${DotnetVersion}-${Version}"
     $tags += $customTag
+    $tags += $legacyCustomTag
 }
+
+$tags = $tags | Select-Object -Unique
 
 Write-Host "Docker tags that will be created:"
 foreach ($tag in $tags) {
@@ -201,10 +162,10 @@ $commonArgs = @(
     "--build-arg", "DOTNET_VERSION=$DotnetVersion",
     "--build-arg", "DOTNET_SDK_IMAGE_TAG=$($dotnetImageTags.Sdk)",
     "--build-arg", "DOTNET_RUNTIME_IMAGE_TAG=$($dotnetImageTags.Runtime)",
-    # Dynamic OCI labels with resolved build-time values
-    "--label", "org.opencontainers.image.version=android$AndroidSdkApiLevel-$dotnetCommandWorkloadSetVersion",
+    "--label", "org.opencontainers.image.version=android$AndroidSdkApiLevel",
     "--label", "org.opencontainers.image.created=$(Get-Date -Format 'o')",
     "--label", "org.opencontainers.image.revision=$BuildSha",
+    "--label", "dev.maui-containers.dotnet-base=$DotnetVersion",
     "-f", "Dockerfile",
     "."
 )
@@ -246,7 +207,6 @@ try {
         "dotnet_version=$DotnetVersion" >> $env:GITHUB_OUTPUT
         "dotnet_sdk_image_tag=$($dotnetImageTags.Sdk)" >> $env:GITHUB_OUTPUT
         "dotnet_runtime_image_tag=$($dotnetImageTags.Runtime)" >> $env:GITHUB_OUTPUT
-        "workload_set_version=$dotnetCommandWorkloadSetVersion" >> $env:GITHUB_OUTPUT
         "android_api_level=$AndroidSdkApiLevel" >> $env:GITHUB_OUTPUT
         "android_build_tools=$androidBuildToolsVersion" >> $env:GITHUB_OUTPUT
         "android_cmdline_tools=$androidCmdLineToolsVersion" >> $env:GITHUB_OUTPUT

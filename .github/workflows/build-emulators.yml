@@ -3,15 +3,6 @@ name: 🐋 Build Android Emulator Images
 on:
   workflow_dispatch:
     inputs:
-      workload_set_version:
-        description: 'Specific workload set version to use'
-        required: false
-        type: string
-      dotnet_versions:
-        description: 'JSON array of .NET versions to build (e.g., ["10.0", "11.0"])'
-        required: false
-        type: string
-        default: '["10.0", "11.0"]'
       android_api_levels:
         description: 'JSON array of Android API levels to build (e.g., [34, 35])'
         required: false
@@ -33,136 +24,47 @@ permissions:
   packages: write
 
 jobs:
-  get-workload-info:
-    name: 🔍 Get Workload Information
+  determine-matrix:
+    name: 🎯 Determine Emulator Matrix
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.determine-matrix.outputs.matrix }}
-      workload-api-levels: ${{ steps.get-workload-info.outputs.workload-api-levels }}
-      workload-set-version: ${{ steps.vars.outputs.workload_set_version }}
-    
-    steps:
-    - name: 🛒 Checkout
-      uses: actions/checkout@v4
 
-    - name: 🔧 Set Variables
-      id: vars
-      run: |
-        # Determine workload set version from either workflow_dispatch input or repository_dispatch payload
-        if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
-          WORKLOAD_SET_VERSION="${{ github.event.client_payload.workload_set_version }}"
-        else
-          WORKLOAD_SET_VERSION="${{ inputs.workload_set_version }}"
-        fi
-        echo "workload_set_version=$WORKLOAD_SET_VERSION" >> $GITHUB_OUTPUT
-        echo "Using workload set version: $WORKLOAD_SET_VERSION"
-    
-    - name: 🔍 Get Workload Information
-      id: get-workload-info
-      shell: pwsh
-      run: |
-        # Import common functions
-        . ./common-functions.ps1
-        
-        # Define .NET versions to check
-        $dotnetVersionsInput = '${{ inputs.dotnet_versions }}'
-        $dotnetVersions = if ($dotnetVersionsInput -ne "") {
-          $dotnetVersionsInput | ConvertFrom-Json
-        } else {
-          # .NET 9.0 is retired from active builds. Add it here if it needs to be revived.
-          @("10.0", "11.0")
-        }
-        $workloadApiLevels = @{}
-        
-        foreach ($dotnetVersion in $dotnetVersions) {
-          Write-Host "Getting workload information for .NET $dotnetVersion"
-          $workloadInfo = Get-WorkloadInfo -DotnetVersion $dotnetVersion -WorkloadSetVersion "${{ steps.vars.outputs.workload_set_version }}" -IncludeAndroid -DockerPlatform "linux/amd64"
-          
-          if ($workloadInfo -and $workloadInfo.Workloads["Microsoft.NET.Sdk.Android"] -and $workloadInfo.Workloads["Microsoft.NET.Sdk.Android"].Details) {
-            $workloadApiLevel = $workloadInfo.Workloads["Microsoft.NET.Sdk.Android"].Details.ApiLevel
-            $workloadApiLevels[$dotnetVersion] = $workloadApiLevel
-            Write-Host "Workload for .NET $dotnetVersion requires API Level: $workloadApiLevel"
-          } else {
-            Write-Warning "Could not get workload API level for .NET $dotnetVersion, using default"
-            $workloadApiLevels[$dotnetVersion] = 35
-          }
-        }
-        
-        # Output the workload API levels as JSON
-        $workloadApiLevelsJson = $workloadApiLevels | ConvertTo-Json -Compress
-        echo "workload-api-levels=$workloadApiLevelsJson" >> $env:GITHUB_OUTPUT
-    
-    - name: 🎯 Determine Build Matrix
+    steps:
+    - name: 🎯 Determine Emulator Matrix
       id: determine-matrix
       shell: pwsh
       run: |
-        # Parse workload API levels
-        $workloadApiLevels = '${{ steps.get-workload-info.outputs.workload-api-levels }}' | ConvertFrom-Json
-        
-        # Define .NET versions to use
-        $dotnetVersionsInput = '${{ inputs.dotnet_versions }}'
-        $dotnetVersions = if ($dotnetVersionsInput -ne "") {
-          $dotnetVersionsInput | ConvertFrom-Json
+        if ("${{ github.event_name }}" -eq "repository_dispatch") {
+          $apiLevelsInput = '${{ github.event.client_payload.android_api_levels }}'
         } else {
-          # .NET 9.0 is retired from active builds. Add it here if it needs to be revived.
-          @("10.0", "11.0")
+          $apiLevelsInput = '${{ inputs.android_api_levels }}'
         }
-        
-        # Define API levels to use
-        $apiLevelsInput = '${{ inputs.android_api_levels }}'
-        $apiLevels = if ($apiLevelsInput -ne "") {
-          $apiLevelsInput | ConvertFrom-Json
-        } else {
-          @(23, 24, 25, 26, 28, 29, 30, 31, 32, 33, 34, 35, 36)
+
+        if ([string]::IsNullOrWhiteSpace($apiLevelsInput)) {
+          $apiLevelsInput = '[23, 24, 25, 26, 28, 29, 30, 31, 32, 33, 34, 35, 36]'
         }
-        
-        # Add workload-required API levels if not already in the list
-        foreach ($dotnetVersion in $workloadApiLevels.PSObject.Properties.Name) {
-          $workloadApiLevel = $workloadApiLevels.$dotnetVersion
-          if ($workloadApiLevel -notin $apiLevels) {
-            $apiLevels += $workloadApiLevel
-            Write-Host "Added workload-required API level $workloadApiLevel for .NET $dotnetVersion"
-          }
-        }
-        
-        # Sort API levels for consistent output
-        $apiLevels = $apiLevels | Sort-Object
-        
-        Write-Host "Using .NET versions: $($dotnetVersions -join ', ')"
+
+        $apiLevels = @($apiLevelsInput | ConvertFrom-Json | Sort-Object -Unique)
         Write-Host "Using API levels: $($apiLevels -join ', ')"
-        
-        # Create matrix combinations
-        $matrix = @()
-        foreach ($dotnetVersion in $dotnetVersions) {
-          foreach ($apiLevel in $apiLevels) {
-            $matrix += @{
-              dotnet_version = $dotnetVersion
-              android_api_level = $apiLevel
-            }
+
+        $matrix = foreach ($apiLevel in $apiLevels) {
+          @{
+            android_api_level = $apiLevel
           }
         }
-        
-        # Convert to JSON format for GitHub Actions
-        $matrixJson = @{ include = $matrix } | ConvertTo-Json -Compress -Depth 3
+
+        $matrixJson = @{ include = @($matrix) } | ConvertTo-Json -Compress -Depth 3
         Write-Host "Matrix: $matrixJson"
         echo "matrix=$matrixJson" >> $env:GITHUB_OUTPUT
 
-  determine-matrix:
-    runs-on: ubuntu-latest
-    needs: get-workload-info
-    outputs:
-      matrix: ${{ needs.get-workload-info.outputs.matrix }}
-    steps:
-      - name: 📋 Pass Through Matrix
-        run: |
-          echo "Using matrix: ${{ needs.get-workload-info.outputs.matrix }}"
-
   build:
-    needs: [get-workload-info, determine-matrix]
-    name: 🐋 Android ${{ matrix.android_api_level }} Emulator (.NET ${{ matrix.dotnet_version }})
+    needs: determine-matrix
+    name: 🐋 Android ${{ matrix.android_api_level }} Emulator
     runs-on: ubuntu-latest
 
     strategy:
+      fail-fast: false
       matrix: ${{ fromJson(needs.determine-matrix.outputs.matrix) }}
 
     steps:
@@ -181,38 +83,35 @@ jobs:
       shell: pwsh
       working-directory: ./docker/test/
       run: |
-        # Get short Git SHA for unique build tagging
         $buildSha = git rev-parse --short=8 HEAD
         Write-Host "Build SHA: $buildSha"
         Write-Host ""
 
-        # Build arguments
         $buildArgs = @{
-          AndroidSdkApiLevel  = "${{ matrix.android_api_level }}"
-          Version             = "${{ github.run_id }}"
-          BuildSha            = $buildSha
-          Load                = $true
+          AndroidSdkApiLevel = "${{ matrix.android_api_level }}"
+          Version            = "${{ github.run_id }}"
+          BuildSha           = $buildSha
+          Load               = $true
         }
 
         if ("${{ github.ref }}" -eq "refs/heads/main") {
           $buildArgs.Push = $true
         }
 
-        # Add workload set version if specified
-        if ("${{ needs.get-workload-info.outputs.workload-set-version }}" -ne "") {
-          $buildArgs.WorkloadSetVersion = "${{ needs.get-workload-info.outputs.workload-set-version }}"
+        if ("${{ github.event_name }}" -eq "repository_dispatch") {
+          $appiumVersion = '${{ github.event.client_payload.appium_version }}'
+          $appiumDriverVersion = '${{ github.event.client_payload.appium_uiautomator2_driver_version }}'
+        } else {
+          $appiumVersion = '${{ inputs.appium_version }}'
+          $appiumDriverVersion = '${{ inputs.appium_uiautomator2_driver_version }}'
         }
 
-        # Add .NET version from matrix
-        $buildArgs.DotnetVersion = "${{ matrix.dotnet_version }}"
-
-        # Add Appium versions if specified
-        if ("${{ inputs.appium_version }}" -ne "") {
-          $buildArgs.AppiumVersion = "${{ inputs.appium_version }}"
+        if (-not [string]::IsNullOrWhiteSpace($appiumVersion)) {
+          $buildArgs.AppiumVersion = $appiumVersion
         }
 
-        if ("${{ inputs.appium_uiautomator2_driver_version }}" -ne "") {
-          $buildArgs.AppiumUIAutomator2DriverVersion = "${{ inputs.appium_uiautomator2_driver_version }}"
+        if (-not [string]::IsNullOrWhiteSpace($appiumDriverVersion)) {
+          $buildArgs.AppiumUIAutomator2DriverVersion = $appiumDriverVersion
         }
 
         ./build.ps1 @buildArgs
@@ -223,14 +122,13 @@ jobs:
       run: |
         BUILD_SHA=$(git rev-parse --short=8 HEAD)
 
-        echo "## 📱 Android ${{ matrix.android_api_level }} Emulator — .NET ${{ steps.build.outputs.dotnet_version || matrix.dotnet_version }}" >> $GITHUB_STEP_SUMMARY
+        echo "## 📱 Android ${{ matrix.android_api_level }} Emulator" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### Installed Software Versions" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "| Component | Version |" >> $GITHUB_STEP_SUMMARY
         echo "|-----------|---------|" >> $GITHUB_STEP_SUMMARY
-        echo "| .NET Runtime | ${{ steps.build.outputs.dotnet_version || matrix.dotnet_version }} |" >> $GITHUB_STEP_SUMMARY
-        echo "| Workload Set | ${{ steps.build.outputs.workload_set_version || 'auto-detected' }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| .NET Runtime Base | ${{ steps.build.outputs.dotnet_runtime_image_tag || '10.0-resolute' }} |" >> $GITHUB_STEP_SUMMARY
         echo "| Android SDK API Level | ${{ steps.build.outputs.android_api_level || matrix.android_api_level }} |" >> $GITHUB_STEP_SUMMARY
         echo "| Android Build Tools | ${{ steps.build.outputs.android_build_tools || '—' }} |" >> $GITHUB_STEP_SUMMARY
         echo "| Android Cmdline Tools | ${{ steps.build.outputs.android_cmdline_tools || '—' }} |" >> $GITHUB_STEP_SUMMARY
@@ -242,7 +140,6 @@ jobs:
         echo "| Build SHA | \`${BUILD_SHA}\` |" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
 
-        # Image tags
         TAGS="${{ steps.build.outputs.image_tags }}"
         if [ -n "$TAGS" ]; then
           echo "### Image Tags" >> $GITHUB_STEP_SUMMARY
@@ -262,4 +159,3 @@ jobs:
           echo "docker run --device /dev/kvm -p 4723:4723 -p 5554:5554 -p 5555:5555 $FIRST_TAG" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
         fi
-

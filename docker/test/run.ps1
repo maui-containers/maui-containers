@@ -1,6 +1,6 @@
 Param(
     [String]$AndroidSdkApiLevel = 35,
-    [String]$DotnetVersion = "10.0",
+    [String]$DotnetVersion = "",
     [String]$DockerRepository = "maui-containers/maui-emulator-linux",
     [String]$AdbKeyFolder = "$env:USERPROFILE/.android",
     [Int]$AdbPortMapping = 5555,
@@ -19,12 +19,8 @@ Param(
     [String]$AvdName = ""
 )
 
-$commonFunctionsPath = Join-Path -Path $PSScriptRoot -ChildPath "..\..\common-functions.ps1" -Resolve -ErrorAction SilentlyContinue
-if ($commonFunctionsPath -and (Test-Path -Path $commonFunctionsPath -PathType Leaf)) {
-    . $commonFunctionsPath
-} else {
-    Write-Error "Could not find common functions file at expected path: ..\..\common-functions.ps1"
-    exit 1
+if (-not [string]::IsNullOrWhiteSpace($DotnetVersion)) {
+    Write-Warning "DotnetVersion is ignored for emulator images. Use android${AndroidSdkApiLevel} tags."
 }
 
 $runArgs = @(
@@ -67,8 +63,7 @@ if ($AvdName -ne "") {
     $runArgs += "-e", "AVD_NAME=$AvdName"
 }
 
-$dotnetImageTags = Get-DotnetContainerImageTags -DotnetVersion $DotnetVersion -DockerPlatform "linux/amd64"
-$imageTag = "${DockerRepository}:android${AndroidSdkApiLevel}-dotnet$($dotnetImageTags.ImageVersion)"
+$imageTag = "${DockerRepository}:android${AndroidSdkApiLevel}"
 $runArgs += $imageTag
 
 Write-Host "Starting emulator container: docker $($runArgs -join ' ')"

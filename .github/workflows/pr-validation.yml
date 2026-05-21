@@ -170,8 +170,11 @@ jobs:
           }
         }
         else {
+          $emulatorDotnetVersion = $dotnetVersions[0]
           foreach ($dotnetVersion in $dotnetVersions) {
-            $matrix += New-MatrixEntry -DotnetVersion $dotnetVersion -Platform "linux" -RunnerOs "ubuntu-latest" -BuildTest 'true' -AndroidApiLevel '35'
+            $buildTest = if ($dotnetVersion -eq $emulatorDotnetVersion) { 'true' } else { 'false' }
+            $androidApiLevel = if ($buildTest -eq 'true') { '35' } else { '' }
+            $matrix += New-MatrixEntry -DotnetVersion $dotnetVersion -Platform "linux" -RunnerOs "ubuntu-latest" -BuildTest $buildTest -AndroidApiLevel $androidApiLevel
             $matrix += New-MatrixEntry -DotnetVersion $dotnetVersion -Platform "windows" -RunnerOs "windows-2025"
           }
         }

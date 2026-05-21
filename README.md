@@ -122,16 +122,12 @@ maui-containers/maui-macos:tahoe-dotnet11.0-preview4-workloads11.0.100-preview.4
 
 #### Emulator/Test Images (includes Android API level)
 ```
-# Android 35 with .NET 10.0
-maui-containers/maui-emulator-linux:android35-dotnet10.0
-maui-containers/maui-emulator-linux:android35-dotnet10.0-workloads10.0.300.3
+# Android 35 emulator
+maui-containers/maui-emulator-linux:android35
+maui-containers/maui-emulator-linux:android35-vsha256abc
 
-# Android 36 with .NET 11.0 Preview
-maui-containers/maui-emulator-linux:android36-dotnet11.0-preview
-maui-containers/maui-emulator-linux:android36-dotnet11.0-preview4
-maui-containers/maui-emulator-linux:android36-dotnet11.0-preview-workloads11.0.100-preview.4.26261.2
-maui-containers/maui-emulator-linux:android36-dotnet11.0-preview-workloads11.0.1xx
-maui-containers/maui-emulator-linux:android36-dotnet11.0-preview4-workloads11.0.100-preview.4.26261.2
+# Compatibility alias for existing consumers
+maui-containers/maui-emulator-linux:android35-dotnet10.0
 ```
 
 ### Platform Identifiers
@@ -239,7 +235,7 @@ docker run \
     -p 5554:5554 \
     -p 5555:5555 \
     -p 4723:4723 \
-    maui-containers/maui-emulator-linux:android35-dotnet10.0
+    maui-containers/maui-emulator-linux:android35
 ```
 
 > NOTE: Ports are mapped for the emulator, ADB, and Appium in this example.
@@ -294,7 +290,7 @@ docker run \
     -e EMULATOR_SNAPSHOT_MODE=save \
     -v emulator-avd:/home/mauiusr/.android/avd \
     -p 4723:4723 \
-    maui-containers/maui-emulator-linux:android35-dotnet10.0
+    maui-containers/maui-emulator-linux:android35
 ```
 
 **Reuse the snapshot (subsequent runs):**
@@ -305,7 +301,7 @@ docker run \
     -e EMULATOR_SNAPSHOT_MODE=load \
     -v emulator-avd:/home/mauiusr/.android/avd \
     -p 4723:4723 \
-    maui-containers/maui-emulator-linux:android35-dotnet10.0
+    maui-containers/maui-emulator-linux:android35
 ```
 
 > **Caution:** Snapshot reuse may leak state between test runs. Keep it opt-in and use the default `none` mode for CI pipelines that require isolation.
@@ -323,8 +319,8 @@ Use `docker inspect --format='{{.State.Health.Status}}'` or wait for `healthy` s
 Use `docker/test/run.ps1` for a quick local launch:
 
 ```powershell
-# Default: API 35, .NET 10.0
-pwsh ./docker/test/run.ps1 -AndroidSdkApiLevel 35 -DotnetVersion 10.0
+# Default: API 35
+pwsh ./docker/test/run.ps1 -AndroidSdkApiLevel 35
 
 # With runtime options
 pwsh ./docker/test/run.ps1 -AndroidSdkApiLevel 35 -DisableSpellchecker -EnableHwKeyboard
@@ -332,16 +328,16 @@ pwsh ./docker/test/run.ps1 -AndroidSdkApiLevel 35 -DisableSpellchecker -EnableHw
 
 ### Variants
 
-Each Android API Level (23 through latest) has its own image variant.  You can specify different ones to use by the tag name (eg: `maui-emulator-linux:android23-dotnet10.0` or `maui-emulator-linux:android35-dotnet10.0`).
+Each Android API Level (23 through latest) has its own image variant. You can specify different ones to use by the tag name (eg: `maui-emulator-linux:android23` or `maui-emulator-linux:android35`). The image uses a .NET runtime base internally for tooling, but emulator variants are not split by .NET or MAUI workload version.
 
-![Docker Image Version (tag)](https://img.shields.io/docker/v/mauicontainers/maui-emulator-linux/android35-dotnet10.0?link=https%3A%2F%2Fhub.docker.com%2Fr%2Fmauicontainers%2Fmaui-emulator-linux%2Ftags)
+![Docker Image Version (tag)](https://img.shields.io/docker/v/mauicontainers/maui-emulator-linux/android35?link=https%3A%2F%2Fhub.docker.com%2Fr%2Fmauicontainers%2Fmaui-emulator-linux%2Ftags)
 
 <details>
 
 <summary>Show Active Variant Examples...</summary>
 
-- ![Docker Image Version (tag)](https://img.shields.io/docker/v/mauicontainers/maui-emulator-linux/android35-dotnet10.0?link=https%3A%2F%2Fhub.docker.com%2Fr%2Fmauicontainers%2Fmaui-emulator-linux%2Ftags)
-- ![Docker Image Version (tag)](https://img.shields.io/docker/v/mauicontainers/maui-emulator-linux/android36-dotnet11.0-preview?link=https%3A%2F%2Fhub.docker.com%2Fr%2Fmauicontainers%2Fmaui-emulator-linux%2Ftags)
+- ![Docker Image Version (tag)](https://img.shields.io/docker/v/mauicontainers/maui-emulator-linux/android35?link=https%3A%2F%2Fhub.docker.com%2Fr%2Fmauicontainers%2Fmaui-emulator-linux%2Ftags)
+- ![Docker Image Version (tag)](https://img.shields.io/docker/v/mauicontainers/maui-emulator-linux/android36?link=https%3A%2F%2Fhub.docker.com%2Fr%2Fmauicontainers%2Fmaui-emulator-linux%2Ftags)
  
 </details>
 
